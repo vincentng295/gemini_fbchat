@@ -1,0 +1,16 @@
+Pillow==11.1.0
+selenium==4.27.1
+google-genai==1.16.1
+webdriver-manager==4.0.2
+pytz==2022.7.1
+pyotp==2.9.0
+beautifulsoup4==4.12.3
+requests==2.32.3
+GitPython==3.1.44
+cryptography==44.0.0
+json5
+flask==3.1.0
+unidecode==1.4.0
+numpy
+opencv-python
+piexif
