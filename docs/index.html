@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en-US">
+   <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <!-- Begin Jekyll SEO tag v2.8.0 -->
+      <title>🎭 Lập Trình Chatbot “Trap Girl” Trên Facebook Messenger 🎭 | gemini_fbchat_bot</title>
+      <meta name="generator" content="Jekyll v3.10.0" />
+      <meta property="og:title" content="🎭 Lập Trình Chatbot “Trap Girl” Trên Facebook Messenger 🎭" />
+      <meta property="og:locale" content="vi_VN" />
+      <meta property="og:site_name" content="gemini_fbchat_bot" />
+      <meta property="og:type" content="website" />
+      <meta name="twitter:card" content="summary" />
+      <meta property="twitter:title" content="🎭 Lập Trình Chatbot “Trap Girl” Trên Facebook Messenger 🎭" />
+      <style>
+        img { 
+            max-width: 600px;
+            max-height: 600px;
+            margin: auto;
+            display: block;
+        }
+        body { 
+            max-width: 800px; 
+            margin: auto; 
+        }
+      </style>
+   </head>
+   <body>
+      <div class="container-lg px-3 my-5 markdown-body">
+         <h1>🎭 Lập Trình Chatbot “Trap Girl” Trên Facebook Messenger 🎭</h1>
+         <h2>👋 Xin chào!</h2>
+         <p>Mình là <strong>Nguyễn Hoàng Thế Vĩ</strong>, và hôm nay mình sẽ hướng dẫn các bạn cách tạo một con chatbot giả làm <strong>trap girl</strong> để chạy trên tài khoản <strong>Facebook Messenger</strong> với chương trình <a href="aichat-schedule">AutomaticFB</a>. Mục đích? Để troll mấy anh trai trên <em>Chatvn</em> 😈.</p>
+         <hr />
+         <h2>🛠️ Bước 1: Tạo tài khoản Facebook clone</h2>
+         <p>Đầu tiên, mình cần một tài khoản Facebook clone. Để tránh bị dính checkpoint, mình sẽ đăng ký tài khoản bằng <strong>email ảo</strong> từ <a href="https://incognitomail.co/">IncognitoMail</a>.</p>
+         <p><img src="images/d5a17e6c-d0d9-416b-8e49-656f5dbeb79a" alt="image" /></p>
+         <p>Mình sử dụng ứng dụng Facebook trên điện thoại để tạo tài khoản. <strong>Tên tài khoản:</strong> <em>Trần Thanh Mai</em>. Một cái tên cực kỳ thơ mộng và đáng yêu. 😆</p>
+         <p><img src="images/2619a9bd-43da-4d1d-90ed-dea5d940128f" alt="image" /></p>
+         <p>Sau khi đăng ký, Facebook yêu cầu xác minh tài khoản. Mình quay lại <a href="https://incognitomail.co/">IncognitoMail</a> để lấy mã xác nhận.</p>
+         <p><img src="images/6cb65e4d-89e6-4af8-b81d-bb6187c00e9d" alt="image" /></p>
+         <p>Tài khoản đã sẵn sàng! Giờ mình chọn một ảnh đại diện <strong>xinh lung linh</strong> để đánh lừa thiên hạ. 🤭</p>
+         <p><img src="images/f22c98cd-1cc5-4b43-b192-d508b397481f" alt="image" /></p>
+         <hr />
+         <h2>🔒 Bước 2: Thiết lập xác thực hai yếu tố (2FA)</h2>
+         <p>Để sử dụng tài khoản này với <strong>GitHub Workflows</strong>, mình cần bật <strong>Xác thực hai yếu tố (2FA)</strong>.</p>
+         <p>Truy cập:<br />
+            <strong>Cài đặt &amp; quyền riêng tư</strong> &gt; <strong>Xem trong trung tâm điều khiển</strong> &gt; <strong>Mật khẩu &amp; bảo mật</strong> &gt; <strong>Xác thực hai yếu tố</strong>.
+         </p>
+         <p>Sau đó, Facebook yêu cầu nhập mật khẩu và mã xác minh:</p>
+         <p><img src="images/83b62541-abfc-4ff2-a892-9064ae624566" alt="image" /></p>
+         <p>Mình chọn phương thức <strong>Ứng dụng xác thực</strong>:</p>
+         <p><img src="images/082a3beb-f7e3-4613-a459-fd7a81e54158" alt="image" /></p>
+         <p>Facebook cung cấp một <strong>Secret Key</strong>, hãy nhớ kỹ vì nó rất quan trọng! Nhấn <strong>Sao chép khóa</strong> để lưu lại.</p>
+         <p><img src="images/c7dde8db-c9f5-4890-9488-c4e6f8cc5822" alt="image" /></p>
+         <p>Truy cập <a href="https://totp.app">totp.app</a> để tạo mã OTP từ Secret Key:</p>
+         <p><img src="images/7409cfa5-78f4-49cd-8b7b-e725a1817095" alt="image" /></p>
+         <p>Nhấn nút <strong>(+)</strong>, nhập Secret Key và đặt tên dễ nhớ:</p>
+         <p><img src="images/166a221f-4df8-433d-9200-88b5dfdfae7f" alt="image" /></p>
+         <p>Sau đó, mình sẽ có thể lấy mã OTP từ Secret Key này:</p>
+         <p><img src="images/e9c7fc21-fc39-493c-96ea-5106581165a7" alt="image" /></p>
+         <p>Nhập mã OTP vào ứng dụng Facebook:</p>
+         <p><img src="images/a8dba126-9adc-4473-8620-dddf96ba86c3" alt="image" /></p>
+         <p>Hoàn tất thiết lập <strong>Xác thực hai yếu tố</strong>:</p>
+         <p><img src="images/19128688-9ca4-4584-ac38-d9af17e4e82c" alt="image" /></p>
+         <hr />
+         <h2>🤖 Bước 3: Chạy chatbot “Trap Girl”</h2>
+         <p>Mình tạo một repo GitHub trống tại <a href="https://github.com/new">GitHub</a> với tên <strong>mess4</strong>.</p>
+         <p><img src="images/a52051c5-591b-4be5-b562-32a9b612ce54" alt="image" /></p>
+         <p>Tiếp theo, mình tạo một file <code class="language-plaintext highlighter-rouge">.github/workflows/A.yml</code> trong repo và copy nội dung từ:</p>
+         <p>👉 <a href="https://raw.githubusercontent.com/vincentng295/gemini_fbchat/refs/heads/main/.github/workflows/aichat-schedule.yml">vincentng295/gemini_fbchat/.github/workflows/aichat-schedule.yml</a></p>
+         <p><img src="images/1503099b-2655-483e-906f-c54b01db990d" alt="image" /></p>
+         <p>Commit file đó lên repo.</p>
+         <hr />
+         <h2>⚙️ Bước 4: Cấu hình GitHub Workflows</h2>
+         <p>Vào <strong>Settings</strong> &gt; <strong>Actions</strong> &gt; <strong>General</strong>, trong phần <strong><em>Workflow permissions</em></strong>, chọn <strong>Read and write permissions</strong> để GitHub có thể upload file đăng nhập Facebook.</p>
+         <p><img src="images/2aa37455-7517-485b-ae4e-60d6e98846b3" alt="image" /></p>
+         <p>Tiếp theo, vào <strong>Settings</strong> &gt; <strong>Secrets and variables</strong> &gt; <strong>Actions</strong> và thêm hai secret:</p>
+         <ul>
+            <li><code class="language-plaintext highlighter-rouge">PASSWORD</code>: Mật khẩu để giải mã các tệp mã hóa, bạn tự đặt nhé</li>
+            <li><code class="language-plaintext highlighter-rouge">GENKEY</code>: <a href="https://aistudio.google.com/app/apikey">Google Developer API key</a> để sử dụng Gemini AI</li>
+         </ul>
+         <hr />
+         <h2>⚙️ Bước 5: Chạy Github Workflows</h2>
+         <p><img src="images/081cc961-8609-4b3b-83fa-51f8868b7aef" alt="image" /></p>
+         <h3>🔑 Nhập các thông tin cần thiết:</h3>
+         <ul>
+            <li><strong>Thông tin đăng nhập Facebook</strong> <em>(username, password, secret code, mã giải mã cuộc trò chuyện đầu cuối)</em>.</li>
+            <li><strong>Bỏ qua tường cookies</strong> <em>(nếu không biết là gì, cứ để mặc định)</em>.</li>
+         </ul>
+         <h3>🎭 Cấu hình persona introduction:</h3>
+         <div class="language-plaintext highlighter-rouge">
+            <div class="highlight">
+               <pre class="highlight"><textarea style="font-size: 12pt;width:100%" rows="5">Hey there, handsome!  I am your sweet little dream… or maybe your most expensive nightmare. Cute face, charming voice, and just enough sass to keep you on your toes. You want a date with me? Oh, honey, that's easy - just send a little love to my BIDV account 6110710542 first. Let's call it… a "commitment fee." No deposit, no rendezvous - rules are rules!</textarea></pre>
+            </div>
+         </div>
+         <h3>⚙️ Cấu hình tùy chọn (Options):</h3>
+         <div class="language-plaintext highlighter-rouge">
+            <div class="highlight">
+               <pre class="highlight"><textarea style="font-size: 12pt;width:100%" rows="5">aichat=normal, friends, aichat_nobye, 
+aichat_chatvn_byemsg=pp, 
+aichat_chatvn_resetmsg=start, 
+aichat_chatvn_resetat=Cuộc\s+trò\s+chuyện\s+đã\s+kết\s+thúc, 
+aichat_chatvn_stopat=Cuộc\s+trò\s+chuyện\s+đã\s+kết\s+thúc, 
+aichat_chatvn_startmsg=hi, 
+aichat_chatvn_startat=Người\s+lạ\s+đã\s+tham\s+gia\s+cuộc\s+trò\s+chuyện, 
+
+aichat_352350744623283_rules=chatvn, 
+aichat_330930096770228_rules=chatvn, 
+aichat_448993038307289_rules=chatvn, 
+aichat_487120077827230_rules=chatvn</textarea></pre>
+            </div>
+	    	<p>&nbsp;</p>
+			<ul>
+				<li>
+					<p><strong><code>aichat_nobye, aichat_byemsg=pp</code></strong></p>
+					<ul>
+						<li>Vô hiệu hóa hiệu lực command "bye" của bot và yêu cầu bot gửi tin nhắn <code>pp</code></li>
+					</ul>
+				</li>
+				<li>
+					<p><strong><code>aichat_chatvn_resetmsg=start</code></strong></p>
+					<ul>
+						<li>Khi bộ nhớ cuộc trò chuyện được reset, bot sẽ gửi tin nhắn <code>"start"</code> để báo hiệu điều đó.</li>
+					</ul>
+				</li>
+				<li>
+					<p><strong><code>aichat_chatvn_resetat=Cuộc\s+trò\s+chuyện\s+đã\s+kết\s+thúc</code></strong></p>
+					<ul>
+						<li>Nếu bot nhận được tin nhắn có nội dung <code>"Cuộc trò chuyện đã kết thúc"</code>, nó sẽ reset cuộc trò chuyện.</li>
+						<li><code>\s+</code> là regex biểu thị một hoặc nhiều khoảng trắng, cho phép chuỗi khớp ngay cả khi người dùng gõ nhiều khoảng trắng giữa các từ.</li>
+					</ul>
+				</li>
+				<li>
+					<p><strong><code>aichat_chatvn_stopat=Cuộc\s+trò\s+chuyện\s+đã\s+kết\s+thúc</code></strong></p>
+					<ul>
+						<li>Nếu bot nhận được tin nhắn này, nó sẽ dừng cuộc trò chuyện.</li>
+					</ul>
+				</li>
+				<li>
+					<p><strong><code>aichat_chatvn_startmsg=hi</code></strong></p>
+					<ul>
+						<li>Khi cuộc trò chuyện bắt đầu, bot sẽ gửi tin nhắn <code>"hi"</code>.</li>
+					</ul>
+				</li>
+				<li>
+					<p><strong><code>aichat_chatvn_startat=Người\s+lạ\s+đã\s+tham\s+gia\s+cuộc\s+trò\s+chuyện</code></strong></p>
+					<ul>
+						<li>Khi bot nhận được tin nhắn có định dạng <code>"Người lạ đã tham gia cuộc trò chuyện"</code>, nó sẽ bắt đầu cuộc trò chuyện.</li>
+					</ul>
+				</li>
+				<li>
+					<p><strong><code>aichat_352350744623283_rules=chatvn</code></strong></p>
+					<ul>
+						<li>Xác định bộ quy tắc áp dụng cho một ID cụ thể (<code>352350744623283</code>), sử dụng quy tắc <code>"chatvn"</code>.</li>
+						<li>Có thể đây là một nhóm người dùng hoặc kênh cụ thể được thiết lập theo quy tắc <code>"chatvn"</code>.</li>
+					</ul>
+				</li>
+			</ul>
+			<p>&nbsp;</p>
+         </div>
+         <hr />
+         <h2>🎉 Hoàn tất!</h2>
+         <p>Mình truy cập fanpage của <code class="language-plaintext highlighter-rouge">chatvn / trò chuyện với người lạ</code> và khởi động tìm người lạ:</p>
+         <p><img src="images/55384208-a43c-4a6b-bbed-b0439591bb9f" alt="Screenshot_20250222_225650_Facebook" /></p>
+         <p>Sau đây là thành quả:</p>
+         <p><img src="images/9d920f22-71dd-4ca5-a1b5-f56693c22b06" alt="image" /></p>
+         <p>Hình ảnh trên Messenger:</p>
+         <p><img src="images/14e18038-bbc3-4423-a0d8-1f82d54147da" alt="Screenshot_20250222_230752_Facebook" /></p>
+         <p>Giờ thì chatbot của mình đã sẵn sàng hoạt động trên <strong>Facebook Messenger</strong>, sẵn sàng <em>lùa gà</em> mấy anh trai nhẹ dạ cả tin. Chúc các bạn code vui vẻ và troll hiệu quả! 🤣</p>
+      </div>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+      <script>anchors.add();</script>
+   </body>
+</html>
