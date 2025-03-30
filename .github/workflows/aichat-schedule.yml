@@ -1,0 +1,121 @@
+name: Run AI Chat on Messenger Account
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "Input Facebook username (optional)"
+        required: false
+      password:
+        description: "Input Facebook password (optional)"
+        required: false
+      otp_secret:
+        description: "Input App authenticator OTP Secret (optional)"
+        required: false
+      onetimecode:
+        description: "Input one-time code to decrypt p2p chat (optional)"
+        required: false
+        type: number
+      alt_account:
+        description: "Input the index of account if the Facebook account has multiple accounts, 0 for main account"
+        default: "0"
+        required: false
+        type: number
+      cookies_text:
+        description: "Input cookies (optional)"
+        required: false
+      alt_cookies_text:
+        description: "Input alternative cookies (optional)"
+        required: false
+      ai_prompt:
+        description: "Input the persona introduction for AI instruction (optional, refer to setup/introduction.txt)"
+        required: false
+      work_jobs:
+        description: "Type one or more of these options: (aichat[=normal|devmode],friends,autolike,keeponline)"
+        required: false
+        default: "aichat=normal,friends"
+      check_only:
+        description: "Check login only (save facebook cookies configuration and skip run AI Chat script)"
+        default: false
+        required: false
+        type: boolean
+
+jobs:
+  run-aichat:
+    runs-on: windows-latest
+    env:
+      SCPDIR: ${{ github.workspace }}/scoped_dir
+      COOKIESFILE: ${{ github.workspace }}/cookies.json
+      FBINFOSFILE: ${{ github.workspace }}/facebook_infos.bin
+      SELF_FBINFOFILE: ${{ github.workspace }}/self_facebook_info.bin
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Pass GitHub Token
+      GITHUB_REPO: ${{ github.repository }}     # Pass the repository (owner/repo)
+      STORAGE_BRANCE: caches/schedule
+      PAT : ${{ secrets.PAT }} # Pass PAT Token
+      PASSWORD: ${{ secrets.PASSWORD }} # Decrypt key
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Gemini FBChat
+        uses: actions/checkout@v3
+        with:
+          repository: vincentng295/gemini_fbchat
+          ref: main # Optional: main or tags name
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+          cache: 'pip'  # caching pip dependencies
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Test selenium
+      - name: Test selenium
+        run: |
+          python test_selenium.py
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      # Wait for other runs to finish
+      - name: Wait for other runs to finish
+        if: ${{ github.event_name == 'schedule' || inputs.check_only != true }}
+        run: |
+          python wait_for_other_runs.py
+        env:
+          PYTHONUNBUFFERED: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Pass GitHub Token
+          GITHUB_REPO: ${{ github.repository }}     # Pass the repository (owner/repo)
+          WORKFLOW_ID: ${{ github.workflow }}       # Pass the workflow ID (name of the workflow)
+          CURRENT_RUN_ID: ${{ github.run_id }}      # Pass the current run ID
+
+      # Run the login script (generates cookies.json if not found)
+      - name: Login Facebook account
+        run: |
+          python fb_getcookies_test.py
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: Cache scoped_dir
+        if: ${{ github.event_name == 'schedule' || inputs.check_only != true }}
+        id: cache-scoped-dir
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.SCPDIR }}
+          key: |
+            scoped-dir-${{ runner.os }}-${{ hashFiles('logininfo.json') }}
+            scoped-dir-${{ runner.os }}-
+
+      # Run AI Chat on Messenger account (schedule)
+      - name: Run AI Chat on Messenger account
+        if: ${{ github.event_name == 'schedule' || inputs.check_only != true }}
+        run: |
+          python aichat_timeout.py
+        env:
+          PYTHONUNBUFFERED: "1"
+          GENKEY: ${{ secrets.GENKEY }}
