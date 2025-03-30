@@ -1,0 +1,28 @@
+name: Clean up
+
+on:
+  workflow_dispatch:
+
+jobs:
+  delete-workflows:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clean up completed workflow runs
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # List all completed workflow runs (first page)
+          runs=$(curl -s -H "Authorization: token $TOKEN" \
+              "https://api.github.com/repos/$REPO/actions/runs?status=completed&per_page=100" | jq '.workflow_runs[].id')
+
+          # Loop and delete each run
+          for run_id in $runs
+          do
+            echo "Deleting workflow run ID: $run_id"
+            curl -X DELETE -s -H "Authorization: token $TOKEN" \
+                "https://api.github.com/repos/$REPO/actions/runs/$run_id"
+          done
+
+          echo "All completed workflow runs deleted."
