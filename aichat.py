@@ -802,18 +802,16 @@ try:
                                             try:
                                                 data_uri = image_element.get_attribute("src")
                                                 _url = None
+                                                image_name = f"files/{generate_random_string(40)}"
                                                 if data_uri.startswith("data:image/jpeg;base64,"):
                                                     # Extract the base64 string (remove the prefix)
                                                     base64_str = data_uri.split(",")[1]
                                                     # Decode the base64 string into binary data
                                                     image_data = base64.b64decode(base64_str)
+                                                    files_mapping[image_name] = ("data", image_data)
                                                 else:
-                                                    image_data = requests.get(data_uri).content
+                                                    files_mapping[image_name] = ("url", data_uri)
                                                     _url = data_uri
-                                                image_name = f"files/{generate_random_string(40)}"
-                                                os.makedirs(os.path.dirname(image_name), exist_ok=True)
-                                                # Use BytesIO to create a file-like object for the image
-                                                files_mapping[image_name] = image_data
                                                
                                                 chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send image", "file_name" : image_name, "mime_type" : "image/jpeg" , "url" : _url, "loaded" : True }, "mentioned_message" : quotes_text})
                                             except Exception:
@@ -824,10 +822,8 @@ try:
                                     try:
                                         video_element = msg_element.find_element(By.CSS_SELECTOR, 'video')
                                         video_url = video_element.get_attribute("src")
-                                        video_data = get_file_data(driver, video_url)
                                         video_name = f"files/{generate_random_string(40)}"
-                                        os.makedirs(os.path.dirname(video_name), exist_ok=True)
-                                        files_mapping[video_name] = video_data
+                                        files_mapping[video_name] = ("url", video_url)
 
                                         chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send video", "file_name" : video_name, "mime_type" : "video/mp4", "url" : None, "loaded" : False }, "mentioned_message" : quotes_text})
                                     except Exception:
@@ -839,10 +835,8 @@ try:
                                         time.sleep(0.2)
                                         audio_url = driver.execute_script("return window.last_play_src;")
                                         driver.execute_script("window.last_play_src = null;")
-                                        audio_data = get_file_data(driver, audio_url)
                                         audio_name = f"files/{generate_random_string(40)}"
-                                        os.makedirs(os.path.dirname(audio_name), exist_ok=True)
-                                        files_mapping[audio_name] = audio_data
+                                        files_mapping[audio_name] = ("url", audio_url)
 
                                         chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send audio", "file_name" : audio_name, "mime_type" : "audio/mp4", "url" : None, "loaded" : True }, "mentioned_message" : quotes_text})
                                     except Exception:
@@ -858,10 +852,8 @@ try:
                                             file_down_name = parsed_url.path.rstrip("/").split("/")[-1]
                                         file_ext, mime_type = get_mine_type(file_down_name)
                                         if check_supported_file(mime_type):
-                                            file_data = get_file_data(driver, file_url)
                                             file_name = f"files/{generate_random_string(40)}"
-                                            os.makedirs(os.path.dirname(file_name), exist_ok=True)
-                                            files_mapping[file_name] = file_data
+                                            files_mapping[file_name] = ("url", file_url)
                                             chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type, "url" : None, "loaded" : False }, "mentioned_message" : quotes_text})
                                         continue
                                     except Exception:
@@ -1006,8 +998,11 @@ try:
                             if genai_key is None:
                                 break
 
-                            for file_name, file_data in files_mapping.items():
+                            for file_name, file_info in files_mapping.items():
+                                info_type = file_info[0]
+                                file_data = file_info[1] if info_type == "data" else get_file_data(driver, file_info[1])
                                 file_object = BytesIO(file_data)
+                                os.makedirs(os.path.dirname(file_name), exist_ok=True)
                                 bytesio_to_file(file_object, file_name)
 
                             max_lines = 75
@@ -1156,8 +1151,11 @@ try:
                                         chat_history.extend(chat_history_new)
                                         chat_history.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : reply_msg}, "mentioned_message" : None })
                                         chat_histories[message_id] = chat_history
-                                        for file_name, file_data in files_mapping.items():
+                                        for file_name, file_info in files_mapping.items():
+                                            info_type = file_info[0]
+                                            file_data = file_info[1] if info_type == "data" else get_file_data(driver, file_info[1])
                                             file_object = BytesIO(file_data)
+                                            os.makedirs(os.path.dirname(file_name), exist_ok=True)
                                             bytesio_to_file(file_object, file_name)
                                     break
                                 except NoSuchElementException:
