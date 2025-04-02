@@ -797,7 +797,7 @@ try:
                                         except Exception:
                                             pass
                                     
-                                    image_elements = msg_element.find_elements(By.CSS_SELECTOR, 'img[class="xz74otr xmz0i5r x193iq5w"]')
+                                    image_elements = msg_element.find_elements(By.CSS_SELECTOR, 'div[role="button"] img')
                                     for image_element in image_elements:
                                         try:
                                             data_uri = image_element.get_attribute("src")
