@@ -797,28 +797,23 @@ try:
                                         except Exception:
                                             pass
                                     
-                                    try:
-                                        image_elements = msg_element.find_elements(By.CSS_SELECTOR, 'img[class="xz74otr xmz0i5r x193iq5w"]')
-                                        for image_element in image_elements:
-                                            try:
-                                                data_uri = image_element.get_attribute("src")
-                                                _url = None
-                                                image_name = f"files/{generate_random_string(40)}"
-                                                if data_uri.startswith("data:image/jpeg;base64,"):
-                                                    # Extract the base64 string (remove the prefix)
-                                                    base64_str = data_uri.split(",")[1]
-                                                    # Decode the base64 string into binary data
-                                                    image_data = base64.b64decode(base64_str)
-                                                    files_mapping[image_name] = ("data", image_data)
-                                                else:
-                                                    files_mapping[image_name] = ("url", data_uri)
-                                                    _url = data_uri
-                                               
-                                                chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send image", "file_name" : image_name, "mime_type" : "image/jpeg" , "url" : _url, "loaded" : True }, "mentioned_message" : quotes_text})
-                                            except Exception:
-                                                pass
-                                    except Exception:
-                                        pass
+                                    image_elements = msg_element.find_elements(By.CSS_SELECTOR, 'img[class="xz74otr xmz0i5r x193iq5w"]')
+                                    for image_element in image_elements:
+                                        try:
+                                            data_uri = image_element.get_attribute("src")
+                                            image_name = f"files/{generate_random_string(40)}"
+                                            if data_uri.startswith("data:image/jpeg;base64,"):
+                                                # Extract the base64 string (remove the prefix)
+                                                base64_str = data_uri.split(",")[1]
+                                                # Decode the base64 string into binary data
+                                                image_data = base64.b64decode(base64_str)
+                                                files_mapping[image_name] = ("data", image_data)
+                                            else:
+                                                files_mapping[image_name] = ("url", data_uri)
+                                           
+                                            chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send image", "file_name" : image_name, "mime_type" : "image/jpeg" , "url" : None, "loaded" : True }, "mentioned_message" : quotes_text})
+                                        except Exception:
+                                            pass
 
                                     try:
                                         video_element = msg_element.find_element(By.CSS_SELECTOR, 'video')
