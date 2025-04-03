@@ -353,7 +353,7 @@ try:
             pass # Ignore all errors
 
         try:
-            
+            time.sleep(3)
             if not switched_to_english:
                 driver.switch_to.window(worker_tab)
                 english_buttons = driver.find_elements(By.XPATH, '//div[contains(text(), "English")]')
@@ -361,10 +361,9 @@ try:
                     driver.execute_script("arguments[0].click();", english_buttons[0])
                     print_with_time("Switched to English")
                     switched_to_english = True
-            time.sleep(0.5)
             if "friends" in work_jobs:
-                driver.switch_to.window(friend_tab)
                 if (int(time.time()) - last_reload_ts_mapping.get(friend_tab, 0)) > 60*30:
+                    driver.switch_to.window(friend_tab)
                     last_reload_ts_mapping[friend_tab] = int(time.time())
                     driver.get("https://www.facebook.com/friends")
                     wait_for_load(driver)
