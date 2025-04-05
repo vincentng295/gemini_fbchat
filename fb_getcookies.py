@@ -53,8 +53,7 @@ def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
     # Block popups and notifications
     prefs = {
         "profile.default_content_setting_values.popups": 2,
-        "profile.default_content_setting_values.notifications": 2,
-        "profile.managed_default_content_settings.images": 2
+        "profile.default_content_setting_values.notifications": 2
     }
     chrome_options.add_experimental_option("prefs", prefs)
     # Enable headless mode if requested
