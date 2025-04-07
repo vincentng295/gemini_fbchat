@@ -47,3 +47,11 @@ def js_type_input(driver, e, value):
         e.setAttribute("value", strings);
         callback();
     """, e, value)
+
+def js_pushstate(driver, path):
+    driver.execute_async_script("""
+        history.pushState({}, '', arguments[0]);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        var callback = arguments[1]; // Selenium's built-in async callback
+        callback();
+    """, path);

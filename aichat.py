@@ -26,6 +26,7 @@ from github_utils import *  # For GitHub file operations
 from fbparser import get_facebook_id
 from fb_getcookies import __chrome_driver__, is_facebook_logged_out, base_url_with_path  # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
+from js_selenium import js_pushstate
 
 def get_day_and_time():
     # Get current date and time
@@ -107,20 +108,11 @@ try:
     driver.switch_to.new_window('tab')
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
     rqchat_tab = driver.current_window_handle
-    
-    driver.switch_to.new_window('tab')
-    driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
-    switch_to_mobile_view(driver)
-    friend_tab = driver.current_window_handle
 
     driver.switch_to.new_window('tab')
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
-    profile_tab = driver.current_window_handle
- 
-    driver.switch_to.new_window('tab')
-    driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
     switch_to_mobile_view(driver)
-    worker_tab = driver.current_window_handle
+    mobileview = driver.current_window_handle
     
     driver.switch_to.window(chat_tab)
     
@@ -171,7 +163,7 @@ try:
     #print_with_time("Vui lòng xác nhận đăng nhập, sau đó nhấn Enter ở đây...")
     #input()
     print_with_time("Đang đọc thông tin cá nhân...")
-    driver.get("https://www.facebook.com/profile.php?sk=about")
+    driver.get("https://www.facebook.com/profile.php")
     wait_for_load(driver)
     
     find_myname = driver.find_elements(By.CSS_SELECTOR, 'h1[class^="html-h1 "]')
@@ -214,20 +206,7 @@ try:
         # Loop through the profile sections
         for sk in sk_list:
             # Build the full URL for the profile section
-            button = None
-            for a in driver.find_elements(By.CSS_SELECTOR, "a"):
-                href = a.get_attribute("href")
-                href_url = urljoin(driver.current_url, href).rstrip("/")
-                sk_value = get_params_value(href_url, "sk")
-                sk_url = urljoin(driver.current_url, sk).rstrip("/")
-                if sk_value is None:
-                    sk_value = get_last_part(href_url)
-                if sk_value == sk:
-                    button = a
-                    break
-            if button is None:
-                continue
-            driver.execute_script("arguments[0].click();", button)
+            js_pushstate(driver, f"/profile.php?sk={sk}")
             time.sleep(3)
             
             # Wait for the page to load
@@ -273,8 +252,6 @@ try:
     def init_fb():
         driver.switch_to.window(chat_tab)
         driver.get("https://www.facebook.com/messages/new")
-        driver.switch_to.window(friend_tab)
-        driver.get("https://www.facebook.com/friends")
         driver.switch_to.window(worker_tab)
         driver.get("https://www.facebook.com/home.php")
 
@@ -287,15 +264,18 @@ try:
     facebook_infos = pickle_from_file(f_facebook_infos, {})
 
     print_with_time("Bắt đầu khởi động!")
-
-    next_chat_tab = chat_tab
-    next_chat_url = "www.facebook.com/messages/new"
+    # Define a mapping of chat tabs to their corresponding URLs
+    chat_tab_mapping = {
+        chat_tab: "/messages/new",
+        rqchat_tab: "/messages/requests"
+    }
     last_reload_ts_mapping = {
         chat_tab : 0,
         rqchat_tab : 0,
-        friend_tab : 0,
+        mobileview : 0,
     }
     ee2e_resolved = False
+    next_chat_tab = chat_tab
 
     def backup_chat_memories():
         global chat_histories_prev_hash
@@ -321,7 +301,7 @@ try:
         upload_file(GITHUB_TOKEN, GITHUB_REPO, f_chat_history + ".enc", STORAGE_BRANCE)
         return True
 
-    driver.switch_to.window(worker_tab)
+    driver.switch_to.window(mobileview)
     driver.get("https://www.facebook.com/language/")
     switched_to_english = False
 
@@ -355,16 +335,16 @@ try:
         try:
             time.sleep(3)
             if not switched_to_english:
-                driver.switch_to.window(worker_tab)
+                driver.switch_to.window(mobileview)
                 english_buttons = driver.find_elements(By.XPATH, '//div[contains(text(), "English")]')
                 if len(english_buttons) > 0:
                     driver.execute_script("arguments[0].click();", english_buttons[0])
                     print_with_time("Switched to English")
                     switched_to_english = True
-            if "friends" in work_jobs:
-                if (int(time.time()) - last_reload_ts_mapping.get(friend_tab, 0)) > 60*30:
-                    driver.switch_to.window(friend_tab)
-                    last_reload_ts_mapping[friend_tab] = int(time.time())
+            if switched_to_english and "friends" in work_jobs:
+                if (int(time.time()) - last_reload_ts_mapping.get(mobileview, 0)) > 60*30:
+                    driver.switch_to.window(mobileview)
+                    last_reload_ts_mapping[mobileview] = int(time.time())
                     driver.get("https://www.facebook.com/friends")
                     wait_for_load(driver)
                     try:
@@ -386,49 +366,12 @@ try:
                     except Exception:
                         pass
 
-            if switched_to_english:
-                if "autolike" in work_jobs or "keeponline" in work_jobs:
-                    driver.switch_to.window(worker_tab)
-                
-                if "autolike" in work_jobs:
-                    inject_reload(driver, 30*60*1000)
-                    driver.execute_script("""
-                        if (typeof window.executeLikes === 'undefined') {
-                            window.executeLikes = true;
-                            (async function randomClickDivs() {
-                                // Find all divs with the specific aria-label
-                                const divs = Array.from(document.querySelectorAll('div[aria-label*="like, double tap and hold for more reactions"]')).concat(Array.from(document.querySelectorAll('div[role="button"] > div[style="color:#1877f2;"]')));
-                                if (divs.length === 0) {
-                                    console.log('No matching divs found.');
-                                    return;
-                                }
-                                console.log(`Found ${divs.length} matching divs.`);
-
-                                // Shuffle the array to randomize the order
-                                const shuffledDivs = divs.sort(() => 0.5 - Math.random());
-
-                                // Select the first 5 divs from the shuffled array
-                                const selectedDivs = shuffledDivs.slice(0, 5);
-
-                                // Click each div with a 10-second delay
-                                for (let i = 0; i < selectedDivs.length; i++) {
-                                    console.log(`Clicking div ${i + 1} of 5...`);
-                                    selectedDivs[i].click();
-
-                                    // Wait for 10 seconds before the next click
-                                    await new Promise(resolve => setTimeout(resolve, 10000));
-                                }
-                            })();
-                        }
-                    """)
-                elif "keeponline" in work_jobs:
-                    inject_reload(driver)
-
             if "aichat" in work_jobs:
                 driver.switch_to.window(next_chat_tab)
+                next_chat_url = chat_tab_mapping[next_chat_tab]
                 if last_reload_ts_mapping.get(next_chat_tab, 0) == 0:
                     print_with_time(f"Khởi động Messenger: {next_chat_url}")
-                    driver.get(f"https://{next_chat_url}")
+                    driver.get(urljoin("https://facebook.com", next_chat_url))
                     last_reload_ts_mapping[next_chat_tab] = int(time.time())
                 try:
                     if len(onetimecode) >= 6 and not ee2e_resolved:
@@ -474,25 +417,12 @@ try:
                 if len(chat_list) <= 0:
                     continue
                 print_with_time(f"Nhận được {len(chat_list)} tin nhắn mới")
-                new_msg_button = driver.find_elements(By.CSS_SELECTOR, 'a[href="/messages/new/"]')
 
                 for chat_info in chat_list:
                     if True:
                         is_group_chat = False
                         chat_href = chat_info["href"]
-                        chat_btn = None
-
-                        # Relocated button if possible
-                        chat_btns = driver.find_elements(By.CSS_SELECTOR, 'a[href^="/messages/"]')
-                        for btn in chat_btns:
-                            if get_last_part(btn.get_attribute("href")) == get_last_part(chat_href):
-                                chat_btn = btn
-                                break
-
-                        if not chat_btn:
-                            continue # Unable to find the button in current frame, skip
-
-                        driver.execute_script("arguments[0].click();", chat_btn)
+                        js_pushstate(driver, chat_href)
                         time.sleep(1)
                         message_id = get_last_part(chat_href)
                         if not chat_histories.get(message_id, None):
@@ -512,7 +442,8 @@ try:
                             facebook_id = None
                             if len(profile_btn) > 0:
                                 profile_btn = profile_btn[0]
-                                profile_link = urljoin(driver.current_url, profile_btn.get_attribute("href"))
+                                profile_href = f'{profile_btn.get_attribute("href")}'
+                                profile_link = urljoin(driver.current_url, profile_href)
 
                                 facebook_info = facebook_infos.get(profile_link)
                                 if facebook_info != None:
@@ -525,35 +456,23 @@ try:
                                         facebook_info = None
 
                                 if facebook_info == None:
-                                    driver.switch_to.window(profile_tab)
-                                    info_url = urljoin(profile_link, "?sk=about")
-                                    driver.get(info_url)
+                                    js_pushstate(driver, profile_href)
 
                                     print_with_time(f"Đang lấy thông tin cá nhân từ {profile_link}")
                                     
                                     wait_for_load(driver)
-                                    time.sleep(0.5)
-                    
+                                    time.sleep(3)
                                     find_who_chatted = driver.find_elements(By.CSS_SELECTOR, 'h1[class^="html-h1 "]')
                                     who_chatted = find_who_chatted[-1].text
                                     
-                                    facebook_info = { "Facebook name" : who_chatted, "Facebook url" :  profile_link, "Last access" : int(time.time()) }
+                                    facebook_info = { 
+                                        "Facebook name" : who_chatted,
+                                        "Facebook url" :  profile_link,
+                                        "Last access" : int(time.time())
+                                    }
                                     for sk in sk_list:
                                         # Build the full URL for the profile section
-                                        button = None
-                                        for a in driver.find_elements(By.CSS_SELECTOR, "a"):
-                                            href = a.get_attribute("href")
-                                            href_url = urljoin(driver.current_url, href).rstrip("/")
-                                            sk_value = get_params_value(href_url, "sk")
-                                            sk_url = urljoin(driver.current_url, sk).rstrip("/")
-                                            if sk_value is None:
-                                                sk_value = get_last_part(href_url)
-                                            if sk_value == sk:
-                                                button = a
-                                                break
-                                        if button is None:
-                                            continue
-                                        driver.execute_script("arguments[0].click();", button)
+                                        js_pushstate(driver, f"{profile_href}?sk={sk}")
                                         time.sleep(3)
 
                                         # Wait for the page to load
@@ -577,6 +496,7 @@ try:
                                                 facebook_info[title] = detail
                                     
                                     facebook_infos[profile_link] = facebook_info
+                                    js_pushstate(driver, chat_href)
                                 else:
                                     who_chatted = facebook_info.get("Facebook name")
 
@@ -605,7 +525,6 @@ try:
 
                     while True:
                         try:
-                            driver.switch_to.window(next_chat_tab)
                             print_with_time(f"Tin nhắn mới từ {who_chatted} (ID: {facebook_id})")
                             print_with_time(json.dumps(facebook_info, ensure_ascii=False, indent=2))
 
@@ -1165,8 +1084,6 @@ try:
                                     pass
                                 print_with_time("Thử lại:", _x + 1)
                                 time.sleep(2)
-                            if len(new_msg_button) == 0:
-                                driver.back()
                             break
                         except StaleElementReferenceException:
                             pass
@@ -1174,9 +1091,7 @@ try:
                             print_with_time(e)
                             break
 
-                new_msg_button = driver.find_elements(By.CSS_SELECTOR, 'a[href="/messages/new/"]')
-                if len(new_msg_button) > 0:
-                    driver.execute_script("arguments[0].click();", new_msg_button[0])
+                js_pushstate(driver, next_chat_url)
                 if (int(time.time()) - last_reload_ts_mapping.get(next_chat_tab, 0)) > 60*5:
                     if if_running_on_github_workflows:
                         backup_chat_memories()
@@ -1184,18 +1099,10 @@ try:
         except Exception as e:
             print_with_time(e)
         finally:
-            # Define a mapping of chat tabs to their corresponding URLs
-            chat_tab_mapping = {
-                chat_tab: "www.facebook.com/messages/new",
-                rqchat_tab: "www.facebook.com/messages/requests"
-            }
-
             # Check the current tab and switch to the next one
             if next_chat_tab in chat_tab_mapping:
                 # Switch to the other tab
                 next_chat_tab = rqchat_tab if next_chat_tab == chat_tab else chat_tab
-                # Update the URL based on the new tab
-                next_chat_url = chat_tab_mapping[next_chat_tab]
 
     if if_running_on_github_workflows:
         backup_chat_memories()
