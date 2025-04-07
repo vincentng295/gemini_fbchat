@@ -26,7 +26,7 @@ from github_utils import *  # For GitHub file operations
 from fbparser import get_facebook_id
 from fb_getcookies import __chrome_driver__, is_facebook_logged_out, base_url_with_path  # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
-from js_selenium import js_pushstate
+from js_selenium import js_pushstate, inject_my_stealth_script
 
 def get_day_and_time():
     # Get current date and time
@@ -107,11 +107,13 @@ try:
     
     driver.switch_to.new_window('tab')
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
+    inject_my_stealth_script(driver)
     rqchat_tab = driver.current_window_handle
 
     driver.switch_to.new_window('tab')
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
     switch_to_mobile_view(driver)
+    inject_my_stealth_script(driver)
     mobileview = driver.current_window_handle
     
     driver.switch_to.window(chat_tab)

@@ -12,6 +12,7 @@ import random
 from urllib.parse import urlparse
 from fbparser import get_facebook_profile_url
 import re
+from js_selenium import inject_my_stealth_script
 
 def hide_email(email):
     match = re.match(r'(\w)(\w+)(\w)(@.+)(\.\w+)', email)
@@ -95,9 +96,7 @@ def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
     driver = webdriver.Chrome(options=chrome_options)
     # Load a blank page and further modify navigator properties to mask automation flags
     driver.get("data:text/html,<html><head></head><body></body></html>")
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']})")
-    driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]})")
+    inject_my_stealth_script(driver)
     return driver
 
 def is_facebook_logged_out(cookies):

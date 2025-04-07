@@ -55,3 +55,20 @@ def js_pushstate(driver, path):
         var callback = arguments[1]; // Selenium's built-in async callback
         callback();
     """, path);
+
+def inject_my_stealth_script(driver):
+    stealth_script = """
+    // Pass the WebDriver check
+    Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined
+    });
+
+    // Mimic a regular user's language settings
+    Object.defineProperty(navigator, 'languages', {
+        get: () => ['en-US', 'en']
+    });
+    """
+    driver.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {"source": stealth_script}
+    )
