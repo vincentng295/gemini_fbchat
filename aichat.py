@@ -102,12 +102,13 @@ try:
 
     tz_params = {'timezoneId': 'Asia/Ho_Chi_Minh'}
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
-
+    add_block_fb_images(driver)
     chat_tab = driver.current_window_handle
     
     driver.switch_to.new_window('tab')
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
     inject_my_stealth_script(driver)
+    add_block_fb_images(driver)
     rqchat_tab = driver.current_window_handle
 
     driver.switch_to.new_window('tab')
@@ -920,7 +921,10 @@ try:
 
                             for file_name, file_info in files_mapping.items():
                                 info_type = file_info[0]
-                                file_data = file_info[1] if info_type == "data" else get_file_data(driver, file_info[1])
+                                file_data = file_info[1] if info_type == "data" else (
+                                    get_file_data(driver, file_info[1]) if file_info[1].startswith("blob:")
+                                    else requests.get(file_info[1]).content
+                                )
                                 file_object = BytesIO(file_data)
                                 os.makedirs(os.path.dirname(file_name), exist_ok=True)
                                 bytesio_to_file(file_object, file_name)
@@ -1073,7 +1077,10 @@ try:
                                         chat_histories[message_id] = chat_history
                                         for file_name, file_info in files_mapping.items():
                                             info_type = file_info[0]
-                                            file_data = file_info[1] if info_type == "data" else get_file_data(driver, file_info[1])
+                                            file_data = file_info[1] if info_type == "data" else (
+                                                get_file_data(driver, file_info[1]) if file_info[1].startswith("blob:")
+                                                else requests.get(file_info[1]).content
+                                            )
                                             file_object = BytesIO(file_data)
                                             os.makedirs(os.path.dirname(file_name), exist_ok=True)
                                             bytesio_to_file(file_object, file_name)

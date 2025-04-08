@@ -397,3 +397,13 @@ def get_params_value(url, name):
     query_params = parse_qs(parsed_url.query)
     value = query_params.get(name, [None])[0]
     return value
+
+def add_block_fb_images(driver):
+    driver.execute_cdp_cmd('Network.enable', {})
+    driver.execute_cdp_cmd('Network.setBlockedURLs', {
+        "urls": [
+            "*://scontent-*.xx.fbcdn.net/*/*.jpg",
+            "*://scontent-*.xx.fbcdn.net/*/*.png",
+            "*://static.xx.fbcdn.net/images/*"
+        ]
+    })
