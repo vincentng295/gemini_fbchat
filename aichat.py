@@ -265,10 +265,13 @@ try:
         print_with_time(e)
     facebook_infos = pickle_from_file(f_facebook_infos, {})
 
+    ######################################
     print_with_time("Bắt đầu khởi động!")
+    ######################################
+
     # Define a mapping of chat tabs to their corresponding URLs
     chat_tab_mapping = {
-        chat_tab: "/messages/new",
+        chat_tab: "/messages/t/100000000000000",
         rqchat_tab: "/messages/requests"
     }
     last_reload_ts_mapping = {
