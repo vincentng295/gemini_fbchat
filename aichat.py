@@ -1100,6 +1100,9 @@ try:
                     last_reload_ts_mapping[next_chat_tab] = int(time.time())
         except Exception as e:
             print_with_time(e)
+        except KeyboardInterrupt:
+            print_with_time("KeyboardInterrupt: clean up, please wait")
+            break
         finally:
             # Check the current tab and switch to the next one
             if next_chat_tab in chat_tab_mapping:
@@ -1111,4 +1114,5 @@ try:
  
 finally:
     driver.quit()
+    print_with_time("Done!")
     
