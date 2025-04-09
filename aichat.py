@@ -410,7 +410,7 @@ try:
                         href = chat_btn.get_attribute("href")
                         message_id = get_last_part(href)
                         
-                        if len(new_chat_indicator) <= 0 and ("aichat_no_welcome" in work_jobs or chat_histories.get(message_id, None)):
+                        if len(new_chat_indicator) <= 0 and (next_chat_tab == rqchat_tab or "aichat_no_welcome" in work_jobs or chat_histories.get(message_id, None)):
                             continue
                         chat_name = chat_btn.find_element(By.CSS_SELECTOR, 'span[dir="auto"]').text
                         chat_list.append({ "href" : href, "name" : chat_name })
