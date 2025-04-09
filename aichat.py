@@ -272,8 +272,8 @@ try:
 
     # Define a mapping of chat tabs to their corresponding URLs
     chat_tab_mapping = {
-        chat_tab: "/messages/t/100000000000000",
-        rqchat_tab: "/messages/requests"
+        chat_tab: (0, "/messages/t/100000000000000"),
+        rqchat_tab: (1, "/messages/requests")
     }
     last_reload_ts_mapping = {
         chat_tab : 0,
@@ -374,7 +374,8 @@ try:
 
             if "aichat" in work_jobs:
                 driver.switch_to.window(next_chat_tab)
-                next_chat_url = chat_tab_mapping[next_chat_tab]
+                next_chat_index = chat_tab_mapping[next_chat_tab][0]
+                next_chat_url = chat_tab_mapping[next_chat_tab][1]
                 if last_reload_ts_mapping.get(next_chat_tab, 0) == 0:
                     print_with_time(f"Khởi động Messenger: {next_chat_url}")
                     driver.get(urljoin("https://facebook.com", next_chat_url))
@@ -402,7 +403,9 @@ try:
 
                 chat_list = []
                 # find all chat buttons
-                chat_btns = driver.find_elements(By.CSS_SELECTOR, 'a[href^="/messages/"]')
+                navigations = driver.find_elements(By.CSS_SELECTOR, 'div[role="navigation"] div[role="grid"]')
+                navigation = navigations[next_chat_index]
+                chat_btns = navigation.find_elements(By.CSS_SELECTOR, 'a[href^="/messages/"]')
                 for chat_btn in chat_btns:
                     try:
                         new_chat_indicator = chat_btn.find_elements(By.CSS_SELECTOR, 'span.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x9f619.x3nfvp2.xl56j7k.x1spa7qu.x1kpxq89.xsmyaan')
