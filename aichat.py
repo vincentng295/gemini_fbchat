@@ -346,19 +346,20 @@ try:
                     driver.execute_script("arguments[0].click();", english_buttons[0])
                     print_with_time("Switched to English")
                     switched_to_english = True
-            if switched_to_english and "friends" in work_jobs:
+            elif "friends" in work_jobs:
                 if (int(time.time()) - last_reload_ts_mapping.get(mobileview, 0)) > 60*30:
                     driver.switch_to.window(mobileview)
                     last_reload_ts_mapping[mobileview] = int(time.time())
                     driver.get("https://www.facebook.com/friends")
                     wait_for_load(driver)
+                    time.sleep(1)
                     try:
                         for button in driver.find_elements(
                             By.XPATH, "//div[starts-with(@aria-label, 'Confirm ') and .//span[text()='Confirm']]"
                         ):
                             print_with_time(button.get_attribute("aria-label"))
                             driver.execute_script("arguments[0].click();", button)
-                            time.sleep(1)
+                            time.sleep(0.1)
                     except Exception:
                         pass
                     try:
@@ -367,7 +368,7 @@ try:
                         ):
                             print_with_time(button.get_attribute("aria-label"))
                             driver.execute_script("arguments[0].click();", button)
-                            time.sleep(1)
+                            time.sleep(0.1)
                     except Exception:
                         pass
 
@@ -1117,7 +1118,11 @@ try:
             # Check the current tab and switch to the next one
             if next_chat_tab in chat_tab_mapping:
                 # Switch to the other tab
-                next_chat_tab = rqchat_tab if next_chat_tab == chat_tab else chat_tab
+                next_chat_tab = rqchat_tab if (
+                    next_chat_tab == chat_tab and (
+                        int(time.time()) - last_reload_ts_mapping.get(rqchat_tab, 0)
+                    ) > 60*5
+                ) else chat_tab
 
     if if_running_on_github_workflows:
         backup_chat_memories()
