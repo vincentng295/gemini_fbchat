@@ -610,13 +610,6 @@ try:
                             header_prompt = get_header_prompt(get_day_and_time(), who_chatted, facebook_info)
 
                             prompt_list.append(f'The Messenger conversation with "{who_chatted}" is as json here:')
-                            if not is_group_chat:
-                                try:
-                                    button = get_message_input()
-                                    driver.execute_script("arguments[0].click();", button)
-                                    get_message_input().send_keys(" ")
-                                except Exception:
-                                    pass
 
                             print_with_time("Đang đọc tin nhắn...")
 
@@ -820,6 +813,11 @@ try:
                                         pass
                                 return chat_history_new, files_mapping
 
+                            try: # Emulate typing...
+                                get_message_input().click()
+                                get_message_input().send_keys(" ")
+                            except Exception:
+                                pass
                             chat_history_new, files_mapping = process_elements(msg_table)
 
                             print_with_time("Đã đọc xong!")
@@ -901,16 +899,16 @@ try:
                                                 if msg_text:
                                                     command_result += msg_text + "\n"
 
-                            if command_result:
-                                try:
-                                    button = get_message_input()
-                                    driver.execute_script("arguments[0].click();", button)
-                                    get_message_input().send_keys(Keys.CONTROL + "a")  # Select all text
-                                    get_message_input().send_keys(Keys.DELETE)  # Delete the selected text
+                            try:
+                                button = get_message_input()
+                                driver.execute_script("arguments[0].click();", button)
+                                get_message_input().send_keys(Keys.CONTROL + "a")  # Select all text
+                                get_message_input().send_keys(Keys.DELETE)  # Delete the selected text
+                                if command_result:
                                     time.sleep(0.5)
                                     get_message_input().send_keys(remove_non_bmp_characters(replace_emoji_with_shortcut(command_result) + "\n"))
-                                except:
-                                    pass
+                            except:
+                                pass
                             is_command_msg = last_msg["message_type"] == "text_message" and is_cmd(last_msg["info"]["msg"])
                             if is_command_msg:
                                 break
