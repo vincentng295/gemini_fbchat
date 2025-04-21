@@ -527,6 +527,8 @@ try:
                             prompt_list = []
                             def process_chat_history(chat_history):
                                 result = []
+                                list_files = genai.list_files()
+                                list_files = {f.name: f for f in list_files}
                                 for msg in chat_history:
                                     final_last_msg = msg
                                     if msg["message_type"] == "text_message" and is_cmd(msg["info"]["msg"]):
@@ -538,7 +540,7 @@ try:
                                         mime_type = msg["info"]["mime_type"]
                                         try:
                                             # find the cached files first
-                                            file_upload = genai.get_file(file_name)
+                                            file_upload = list_files.get(file_name)
                                         except Exception:
                                             try:
                                                 if msg["info"].get("url", None) is not None:
