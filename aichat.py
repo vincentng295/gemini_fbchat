@@ -584,6 +584,7 @@ try:
 
                             command_result = []
                             reset = False
+                            should_stop = False
                             should_not_chat = chat_histories["status"].get(message_id, True) == False or chat_histories["status"].get(facebook_id, True) == False
                             max_video = 10
                             num_video = 0
@@ -780,7 +781,7 @@ try:
                             def reset_chat(msg = None):
                                 global reset
                                 reset = True
-                                if msg == "0" or msg == None:
+                                if msg == None:
                                     msg = message_id
                                 chat_histories[msg] = [{"message_type" : "new_chat", "info" : "New chat"}]
                                 return f'Bot has been reset'
@@ -799,14 +800,20 @@ try:
                                 return f'Unknown mute mode! Use "1" to mute the bot or "0" to unmute the bot.'
 
                             def mute_by_id(chatid):
+                                if chatid == None:
+                                    chatid = message_id
                                 chat_histories["status"][chatid] = False
                                 return f"Bot is muted in chat with id {chatid}"
 
                             def unmute_by_id(chatid):
+                                if chatid == None:
+                                    chatid = message_id
                                 chat_histories["status"][chatid] = True
                                 return f"Bot is unmuted in chat with id {chatid}"
 
                             def dump_chat(chatid):
+                                if chatid == None:
+                                    chatid = message_id
                                 return json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2)
 
                             def get_info(name):
@@ -816,6 +823,10 @@ try:
                                     return PASSWORD
                                 return f"Invalid argument: {name}"
 
+                            def terminate(__):
+                                should_stop = True
+                                return "Good bye!"
+
                             # Dictionary mapping arg1 to functions
                             func = {
                                 "reset": reset_chat,
@@ -823,6 +834,7 @@ try:
                                 "unmute" : unmute_by_id,
                                 "get" : get_info,
                                 "dump" : dump_chat,
+                                "terminate" : terminate,
                             }
 
                             def parse_and_execute(command):
@@ -832,11 +844,12 @@ try:
                                 args = shlex.split(command)
                                 
                                 # Check if the command starts with /cmd
-                                if len(args) < 3 or args[0] != "/cmd":
+                                if len(args) < 2 or args[0] != "/cmd":
                                     return "Invalid command format. Use: /cmd arg1 arg2"
                                 
                                 # Extract arg1 and arg2
-                                arg1, arg2 = args[1], args[2]
+                                arg1 = args[1]
+                                arg2 = args[2] if len(args) > 2 else None
                                 
                                 # Check if arg1 is in func and execute
                                 if arg1 in func:
@@ -880,6 +893,8 @@ try:
                                         get_message_input().send_keys("\n") # Press Enter to send image
                             except:
                                 pass
+                            if should_stop:
+                                raise KeyboardInterrupt
                             is_command_msg = last_msg["message_type"] == "text_message" and is_cmd(last_msg["info"]["msg"])
                             if is_command_msg:
                                 break
