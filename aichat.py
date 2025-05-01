@@ -181,7 +181,7 @@ try:
         # Loop through the profile sections
         for sk in sk_list:
             # Build the full URL for the profile section
-            js_pushstate(driver, f"/profile.php?sk={sk}")
+            js_pushstate(driver, f"/me?sk={sk}")
             time.sleep(3)
             
             # Wait for the page to load
