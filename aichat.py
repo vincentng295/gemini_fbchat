@@ -132,7 +132,7 @@ try:
         driver.add_cookie(cookie)
     print_with_time("Đã khôi phục cookies")
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
-    driver.get("https://www.facebook.com/")
+    driver.get("https://www.facebook.com/me")
     wait_for_load(driver)
 
     f_self_facebook_info = "self_facebook_info.bin"
