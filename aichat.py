@@ -213,7 +213,8 @@ try:
 
     def load_model():
         global ai_prompt
-        get_file(GITHUB_TOKEN, GITHUB_REPO, f_intro_txt, STORAGE_BRANCE, f_intro_txt)
+        if on_github_workflows:
+            get_file(GITHUB_TOKEN, GITHUB_REPO, f_intro_txt, STORAGE_BRANCE, f_intro_txt)
         with open(f_intro_txt, "r", encoding='utf-8') as f: # What kind of person will AI simulate?
             ai_prompt = f.read()
         # Setup overall guidance to the model
@@ -1102,8 +1103,15 @@ try:
             if is_facebook_domain(current_url) and get_path(current_url).startswith("/checkpoint/"):
                 print_with_time("Tài khoản bị đình chỉ bởi Facebook")
                 raise KeyboardInterrupt
-            if is_facebook_logged_out(driver.get_cookies()):
-                if bak_cookies is not None:
+            new_cookies = driver.get_cookies()
+            if is_facebook_logged_out(new_cookies):
+                if check_cookies_(cookies) == 1:
+                    # The cookies is not actually die
+                    print_with_time("Cập nhật lại cookies")
+                    for cookie in cookies:
+                        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
+                        driver.add_cookie(cookie)
+                elif bak_cookies is not None:
                     print_with_time("Tài khoản bị đăng xuất, sử dụng cookies dự phòng")
                     # TODO: obtain new cookies
                     driver.delete_all_cookies()
@@ -1115,7 +1123,6 @@ try:
                     driver.get("https://www.facebook.com/")
                     wait_for_load(driver)
                     time.sleep(1)
-                    continue
                 else:
                     print_with_time("Tài khoản bị đăng xuất")
                     raise KeyboardInterrupt

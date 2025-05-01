@@ -115,7 +115,10 @@ def get_facebook_id_from_cookies(cookies):
     return None
 
 def is_facebook_logged_out(cookies):
-    return (get_facebook_id_from_cookies(cookies) is None)
+    for cookie in cookies:
+        if cookie.get("name", "") == "xs":
+            return (cookie.get("value", None) is None)
+    return True
 
 def check_cookies_(cookies):
     if cookies == None:
@@ -237,7 +240,6 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
                     time.sleep(1)
                     print(f"{hide_email(username)}: Chọn xác thực bằng mã OTP từ ứng dụng xác thực")
                     actions.move_to_element(other_veri_btn).click().perform() # Click App Auth method
-                    #time.sleep(random.randint(1,3))
                     other_veri_btn = find_element_when_clickable_in_list([
                         (By.XPATH, '//span[contains(text(), "Tiếp tục")]'),
                         (By.XPATH, '//span[contains(text(), "Continue")]')
@@ -245,7 +247,6 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
                     time.sleep(1)
                     print(f"{hide_email(username)}: Nhấn vào nút Tiếp tục")
                     actions.move_to_element(other_veri_btn).click().perform() # Click Continue
-                    #time.sleep(random.randint(1,3))
                 other_veri_btn = find_element_when_clickable(By.CSS_SELECTOR, 'input[type="text"]')
                 continue_btn = find_element_when_clickable_in_list([
                     (By.XPATH, '//span[contains(text(), "Tiếp tục")]'),
