@@ -4,38 +4,34 @@ on:
   workflow_dispatch:
     inputs:
       username:
-        description: "Input Facebook username (optional)"
+        description: "Facebook email or phone number"
         required: false
       password:
-        description: "Input Facebook password (optional)"
+        description: "Facebook password"
+        default: "******"
         required: false
       otp_secret:
-        description: "Input App authenticator OTP Secret (optional)"
+        description: "App authenticator OTP Secret"
+        default: "XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX"
         required: false
       onetimecode:
-        description: "Input one-time code to decrypt p2p chat (optional)"
+        description: "Code to decrypt end-to-end encrypted conservation"
         required: false
         type: number
       alt_account:
-        description: "Input the index of account if the Facebook account has multiple accounts, 0 for main account"
+        description: "Account index (0 for main)"
         default: "0"
         required: false
         type: number
-      cookies_text:
-        description: "Input cookies (optional)"
-        required: false
-      alt_cookies_text:
-        description: "Input alternative cookies (optional)"
-        required: false
       ai_prompt:
-        description: "Input the persona introduction for AI instruction (optional, refer to setup/introduction.txt)"
+        description: "Persona introduction (optional, refer to setup/introduction.txt)"
         required: false
       work_jobs:
-        description: "Type one or more of these options: (aichat[=normal|devmode],friends,autolike,keeponline)"
+        description: "Options: (aichat[=normal|devmode],friends)"
         required: false
         default: "aichat=normal,friends"
       check_only:
-        description: "Check login only (save facebook cookies configuration and skip run AI Chat script)"
+        description: "Save Facebook configuration only (No running AI Chat)"
         default: false
         required: false
         type: boolean
