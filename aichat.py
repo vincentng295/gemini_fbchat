@@ -61,9 +61,6 @@ headless = os.getenv("HEADLESS", "false").lower() == "true"
 f_intro_txt = "setup/introduction.txt"
 f_rules_txt = "setup/rules.txt"
 
-with open(f_intro_txt, "r", encoding='utf-8') as f: # What kind of person will AI simulate?
-    ai_prompt = f.read()
-
 cwd = os.getcwd()
 print_with_time(cwd)
 
@@ -209,24 +206,30 @@ try:
         if on_github_workflows:
             upload_file(GITHUB_TOKEN, GITHUB_REPO, f_self_facebook_info, STORAGE_BRANCE)
     myname = self_facebook_info["Facebook name"]
-
     gemini_dev_mode = work_jobs.get("aichat", "normal") == "devmode"
-    instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
-    # Setup persona instruction
     genai.configure(api_key=genai_key)
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
-        system_instruction=instruction,  # Your overall guidance to the model
-        safety_settings={
-            'harm_category_harassment': 'BLOCK_NONE',
-            'harm_category_hate_speech': 'BLOCK_NONE',
-            'harm_category_sexually_explicit': 'BLOCK_NONE',
-            'harm_category_dangerous_content': 'BLOCK_NONE',
-        }
-    )
 
-    for text in instruction:
-        print_with_time(text)
+    ai_prompt = ""
+
+    def load_model():
+        global ai_prompt
+        get_file(GITHUB_TOKEN, GITHUB_REPO, f_intro_txt, STORAGE_BRANCE, f_intro_txt)
+        with open(f_intro_txt, "r", encoding='utf-8') as f: # What kind of person will AI simulate?
+            ai_prompt = f.read()
+        # Setup overall guidance to the model
+        instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
+        return genai.GenerativeModel(
+            model_name="gemini-2.0-flash",
+            system_instruction=instruction,  # Your overall guidance to the model
+            safety_settings={
+                'harm_category_harassment': 'BLOCK_NONE',
+                'harm_category_hate_speech': 'BLOCK_NONE',
+                'harm_category_sexually_explicit': 'BLOCK_NONE',
+                'harm_category_dangerous_content': 'BLOCK_NONE',
+            }
+        )
+
+    model = load_model()
 
     f_facebook_infos = "facebook_infos.bin"
     try:
@@ -802,12 +805,19 @@ try:
                                         return json.dumps(cookies, ensure_ascii=False, indent=2)
                                     if name == "enckey":
                                         return PASSWORD
+                                    if name == "intro":
+                                        return ai_prompt
                                     return f"Invalid argument: {name}"
 
                                 def terminate(__):
                                     global should_stop
                                     should_stop = True
                                     return "Good bye!"
+
+                                def update_model(__):
+                                    global model
+                                    model = load_model()
+                                    return "Update model!"
 
                                 # Dictionary mapping arg1 to functions
                                 func = {
@@ -817,6 +827,7 @@ try:
                                     "get" : get_info,
                                     "dump" : dump_chat,
                                     "terminate" : terminate,
+                                    "update" : update_model,
                                 }
 
                                 def parse_and_execute(command):
