@@ -967,7 +967,7 @@ try:
                                             ),)
                                             if not response.candidates:
                                                 chat_history = [{"message_type" : "summary_old_chat", "info" : "The previous conversation has been deleted"}]
-                                                caption = json.dumps({"info" : {"msg" : "(y)"}}, indent = 4, ensure_ascii=False)
+                                                caption = json.dumps({"info" : {"msg" : "Sorry!"}}, indent = 4, ensure_ascii=False)
                                             else:
                                                 caption = response.text
                                         if caption is not None:
@@ -984,7 +984,11 @@ try:
                                             reply_msg, bot_commands = extract_keywords(r'\[cmd\](.*?)\[/cmd\]', reply_msg)
                                             
                                             json_msg = fix_json(reply_msg)
-                                            reply_msg = json_msg["info"]["msg"]
+                                            try:
+                                                reply_msg = json_msg["info"]["msg"]
+                                            except Exception:
+                                                caption = None
+                                                raise JSON5DecodeError("Error getting message") # Ask Gemini to re-generate JSON
 
                                             for adult, img_keywords in img_search.items():
                                                 for img_keyword in img_keywords:
