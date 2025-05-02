@@ -28,6 +28,7 @@ from fb_getcookies import __chrome_driver__
 from fb_getcookies import * # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
 from js_selenium import js_pushstate, inject_my_stealth_script
+from shorturl import start_shorturl_thread, register_shorturl
 
 def get_day_and_time():
     # Get current date and time
@@ -73,6 +74,7 @@ try:
     # Initialize the driver
     driver = __chrome_driver__(scoped_dir, headless)
     actions = ActionChains(driver)
+    start_shorturl_thread()
 
     tz_params = {'timezoneId': 'Asia/Ho_Chi_Minh'}
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
@@ -177,6 +179,7 @@ try:
             images = link.find_elements(By.CSS_SELECTOR, "img")
             for image in images:
                 src = image.get_attribute("src")
+                src = register_shorturl(urljoin(driver.current_url, src))
                 alt = image.get_attribute("alt")
                 photos[src] = alt
 
