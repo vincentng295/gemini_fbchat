@@ -544,10 +544,15 @@ try:
                                                         get_raw_file(msg["info"]["url"], file_name)
                                                     file_upload = genai.upload_file(path = file_name, mime_type = mime_type, name = file_name)
                                                 except Exception as e:
-                                                    result.append(f"{file_name} cannot be loaded")
+                                                    result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
                                                     print_with_time(e)
                                                     continue
-                                            result.append(file_upload)
+                                            if file_upload.state == 2:
+                                                result.append(file_upload)
+                                            elif file_upload.state == 10:
+                                                result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
+                                            else:
+                                                result.append(f"{file_name} is not ready to view yet. Please wait a moment!")
                                     return result
 
                                 def release_unload_files(chat_history, do_all = False):
