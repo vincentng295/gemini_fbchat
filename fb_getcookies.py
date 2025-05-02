@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import time
 import os
+import sys
 import json
 import random
 from urllib.parse import urlparse
@@ -15,9 +16,9 @@ import re
 from js_selenium import inject_my_stealth_script
 
 def hide_email(email):
-    match = re.match(r'(\w)(\w+)(\w)(@.+)(\.\w+)', email)
+    match = re.match(r'(\w+)@(\w+)\.(\w+)', email)
     if match:
-        return f"{match.group(1)}***{match.group(3)}{match.group(4)[0]}@***{match.group(5)}"
+        return f"{match.group(1)[0]}***@***.{match.group(3)[0]}***"
     return email  # Return original if it doesn't match
 
 cwd = os.getcwd()
@@ -161,19 +162,6 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         
         wait = WebDriverWait(driver, 20)
 
-        if type(cookies) == list:
-            driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": True})
-            driver.get("https://www.facebook.com")
-            wait.until(
-                lambda d: d.execute_script("return document.readyState") == "complete"
-            )
-            driver.delete_all_cookies()
-            for cookie in cookies:
-                cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
-                driver.add_cookie(cookie)
-            print("Đã khôi phục cookies")
-            driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
-
         def find_element_when_clickable(by, selector):
             return wait.until(EC.element_to_be_clickable((by, selector)))
         
@@ -186,33 +174,59 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
                     continue
             return None
 
+        driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": True})
+        driver.get("https://www.facebook.com/")
+        wait.until(
+            lambda d: d.execute_script("return document.readyState") == "complete"
+        )
+
+        if type(cookies) == list:
+            wait.until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
+            driver.delete_all_cookies()
+            for cookie in cookies:
+                cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
+                driver.add_cookie(cookie)
+            print("Đã khôi phục cookies")
+
+        driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
         driver.get("https://www.facebook.com/")
         wait.until(
             lambda d: d.execute_script("return document.readyState") == "complete"
         )
         time.sleep(0.5)
-        driver.get("https://www.facebook.com/login/")
-        wait.until(
-            lambda d: d.execute_script("return document.readyState") == "complete"
-        )
-        time.sleep(0.5)
 
-        email_input = find_element_when_clickable(By.NAME, "email")
-        password_input = find_element_when_clickable(By.NAME, "pass")
-        actions.move_to_element(email_input).click().perform()
-        time.sleep(random.randint(5,10))
-        human_typing(email_input, username)
-        actions.move_to_element(password_input).click().perform()
-        time.sleep(random.randint(5,10))
-        human_typing(password_input, password)
-        
-        time.sleep(random.randint(5,10))
-        button = find_element_when_clickable_in_list([
-            (By.CSS_SELECTOR, 'button[id="loginbutton"]'),
-            (By.CSS_SELECTOR, 'button[type="submit"]')
-        ])
-        actions.move_to_element(button).click().perform()
-        print(f"{hide_email(username)}: Đang đăng nhập...")
+        prelogin = driver.find_elements(By.CSS_SELECTOR, 'a[href="#"][data-onclick]')
+        if len(prelogin) > 0:
+            actions.move_to_element(prelogin[0]).click().perform()
+        else:            
+            email_input = find_element_when_clickable(By.NAME, "email")
+            password_input = find_element_when_clickable(By.NAME, "pass")
+            actions.move_to_element(email_input).click().perform()
+            time.sleep(random.randint(5,10))
+            human_typing(email_input, username)
+            actions.move_to_element(password_input).click().perform()
+            time.sleep(random.randint(5,10))
+            human_typing(password_input, password)
+            
+            time.sleep(random.randint(5,10))
+            button = find_element_when_clickable_in_list([
+                (By.CSS_SELECTOR, 'button[type="submit"]'),
+                (By.CSS_SELECTOR, 'button[id="loginbutton"]'),
+            ])
+            form = button.find_element(By.XPATH, "./ancestor::form")
+            # inject to save login
+            driver.execute_script("""
+                var form = arguments[0];
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'savepass';
+                input.value = '';
+                form.appendChild(input);
+            """, form)
+            actions.move_to_element(button).click().perform()
+            print(f"{hide_email(username)}: Đang đăng nhập...")
         time.sleep(1)
         wait.until(
             lambda d: d.execute_script("return document.readyState") == "complete"
@@ -268,7 +282,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         print(_url)
         if  (_url == "www.facebook.com/two_step_verification/two_factor" or 
             _url == "www.facebook.com/auth_platform/afad"):
-            print(f"{hide_email(username)}: Đang chờ Facebook xác thực. Có thể phê duyệt từ thiết bị khác trong vòng 300 giây...")
+            print(f"{hide_email(username)}: Đang chờ Facebook xác thực. Nếu đã đăng nhập tài khoản này từ thiết bị khác, bạn có thể phê duyệt từ thiết bị đó khác trong vòng 300 giây...")
             for i in range(300):
                 _url = base_url_with_path(driver.current_url)
                 if  (_url == "www.facebook.com/two_step_verification/two_factor" or 
@@ -279,6 +293,9 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
 
         _url = base_url_with_path(driver.current_url)
         print(_url)
+        if _url.startswith("www.facebook.com/checkpoint/"):
+            print(f"Tài khoản dính checkpoint [{_url}]")
+            return -1, None
 
         driver.get("https://www.facebook.com/profile.php")
 
@@ -311,9 +328,6 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         if _url == "www.facebook.com" or _url == "www.facebook.com/login":
             print(f"Đăng nhập thất bại [{_url}]")
             return 0, None
-        if _url.startswith("www.facebook.com/checkpoint/"):
-            print(f"Đăng nhập thất bại [{_url}]")
-            return -1, None
         print(f"{hide_email(username)}: Đăng nhập thành công [{driver.current_url}]")
     except Exception as e:
         print(f"Error: {e}")
@@ -322,3 +336,16 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         driver.quit()
         
     return 1, cookies
+
+if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding='utf-8')
+    # Use disabled Facebook account for testing :>
+    result, _ = get_fb_cookies(
+        "cthigiang952@mailpro.live", 
+        "CaoGiang$0900", 
+        "2526 VJOL P2TH UXNZ RAXD G3V5 I4DX AIFF"
+    )
+    if result != 0:
+        print("Kiểm tra thành công")
+    else:
+        raise Exception("Test unsuccessful!")

@@ -165,12 +165,11 @@ if username:
             continue
         break
 
-
+# Swap cookies to reduce the chance of cookies being logged out
 with open(filename, "w") as cookies_file:
-    json.dump(cookies, cookies_file)
-
+    json.dump(bakcookies, cookies_file)
 with open(bakfilename, "w") as bakcookies_file:
-    json.dump(bakcookies, bakcookies_file)
+    json.dump(cookies, bakcookies_file)
 
 try:
     if if_running_on_github_workflows and need_upload:
@@ -187,3 +186,5 @@ try:
         print(f"Đã tải tệp lên branch: {STORAGE_BRANCE}")
 except Exception as e:
     print(e)
+
+
