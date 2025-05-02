@@ -132,7 +132,7 @@ try:
         driver.add_cookie(cookie)
     print_with_time("Đã khôi phục cookies")
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
-    driver.get("https://www.facebook.com/me")
+    driver.get("https://www.facebook.com/me/photos_by/")
     wait_for_load(driver)
 
     f_self_facebook_info = "self_facebook_info.bin"
@@ -169,6 +169,16 @@ try:
     if self_fbid is None:
         self_fbid = get_facebook_id_from_cookies(cookies)
     print_with_time(f"URL là {self_url}")
+    photos = {}
+    links = driver.find_elements(By.CSS_SELECTOR, 'a[role="link"]')
+    for link in links:
+        href = link.get_attribute("href")
+        if get_path(href) == "/photo.php":
+            images = link.find_elements(By.CSS_SELECTOR, "img")
+            for image in images:
+                src = image.get_attribute("src")
+                alt = image.get_attribute("alt")
+                photos[src] = alt
 
     if self_facebook_info.get("Facebook name", None) is None or self_facebook_info.get("Facebook id", "") != self_fbid:
         print_with_time("Đang đọc thông tin cá nhân...")
@@ -205,6 +215,9 @@ try:
         pickle_to_file(f_self_facebook_info, self_facebook_info)
         if on_github_workflows:
             upload_file(GITHUB_TOKEN, GITHUB_REPO, f_self_facebook_info, STORAGE_BRANCE)
+    self_facebook_info["Facebook photos"] = photos
+    if "debug" in work_jobs:
+        print_with_time(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
     myname = self_facebook_info["Facebook name"]
     gemini_dev_mode = work_jobs.get("aichat", "normal") == "devmode"
     genai.configure(api_key=genai_key)
@@ -808,6 +821,8 @@ try:
                                         return PASSWORD
                                     if name == "intro":
                                         return ai_prompt
+                                    if name == "info":
+                                        return json.dumps(self_facebook_info, ensure_ascii=False, indent=2)
                                     return f"Invalid argument: {name}"
 
                                 def terminate(__):
