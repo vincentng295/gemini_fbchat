@@ -174,14 +174,17 @@ try:
     photos = {}
     links = driver.find_elements(By.CSS_SELECTOR, 'a[role="link"]')
     for link in links:
-        href = link.get_attribute("href")
-        if get_path(href) == "/photo.php":
-            images = link.find_elements(By.CSS_SELECTOR, "img")
-            for image in images:
-                src = image.get_attribute("src")
-                src = register_shorturl(urljoin(driver.current_url, src))
-                alt = image.get_attribute("alt")
-                photos[src] = alt
+        try:
+            href = link.get_attribute("href")
+            if get_path(href) == "/photo.php":
+                images = link.find_elements(By.CSS_SELECTOR, "img")
+                for image in images:
+                    src = image.get_attribute("src")
+                    src = register_shorturl(urljoin(driver.current_url, src))
+                    alt = image.get_attribute("alt")
+                    photos[src] = alt
+        except Exception:
+            pass
 
     if self_facebook_info.get("Facebook name", None) is None or self_facebook_info.get("Facebook id", "") != self_fbid:
         print_with_time("Đang đọc thông tin cá nhân...")
