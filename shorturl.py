@@ -1,4 +1,4 @@
-from flask import Flask, redirect
+from flask import Flask, redirect, abort, render_template_string
 from threading import Thread
 import hashlib
 
@@ -12,7 +12,17 @@ def register_shorturl(url):
 
 @shorturl_app.route('/<short_key>')
 def redirect_shorturl(short_key):
-    return redirect(url_map.get(short_key, "/404"))
+    if short_key in url_map:
+        return redirect(url_map[short_key])
+    else:
+        return abort(404)
+
+@shorturl_app.errorhandler(404)
+def page_not_found(e):
+    return render_template_string("""
+        <h1>404 Not Found</h1>
+        <p>The short URL you're trying to access doesn't exist.</p>
+    """), 404
 
 def run_shorturl_flask():
     shorturl_app.run(debug=False, use_reloader=False)
