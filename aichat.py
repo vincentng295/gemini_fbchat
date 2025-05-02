@@ -827,7 +827,9 @@ try:
                                     if name == "inbox":
                                         return json.dumps(chat_list_all, ensure_ascii=False, indent=2)
                                     if name == "cookies":
-                                        return json.dumps(cookies, ensure_ascii=False, indent=2)
+                                        return f'{selenium_cookies_to_cookie_header(cookies)}'
+                                    if name == "bakcookies":
+                                        return f'{selenium_cookies_to_cookie_header(bak_cookies)}'
                                     if name == "enckey":
                                         return PASSWORD
                                     if name == "intro":

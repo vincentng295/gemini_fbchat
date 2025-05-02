@@ -58,6 +58,16 @@ def parse_cookies(cookies_text):
         cookies.append({'name': name, 'value': value, "domain": ".facebook.com", "httpOnly": False, "path": "/", "sameSite": "Lax", "secure": False })
     return cookies
 
+def sanitize_cookie_value(value):
+    # Basic sanitization to remove semicolons and newlines (both invalid in cookie headers)
+    return value.replace(';', '%3B').replace('\n', '')
+
+def selenium_cookies_to_cookie_header(cookies):
+    return '; '.join(
+        f"{cookie['name']}={sanitize_cookie_value(cookie['value'])}"
+        for cookie in cookies
+    )
+
 def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
     # Set up Chrome options
     chrome_options = Options()
