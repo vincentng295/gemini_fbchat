@@ -333,6 +333,7 @@ try:
     driver.switch_to.window(mobileview)
     driver.get("https://www.facebook.com/language/")
     switched_to_english = False
+    last_reload_ts_mapping[mobileview] = 1
 
     while True:
         try:
@@ -345,31 +346,38 @@ try:
                     print_with_time("Switched to English")
                     switched_to_english = True
             elif "friends" in work_jobs:
-                if (int(time.time()) - last_reload_ts_mapping.get(mobileview, 0)) > 60*30:
+                if last_reload_ts_mapping.get(mobileview, 0) == 0:
+                    driver.switch_to.window(mobileview)
+                    last_reload_ts_mapping[mobileview] = 1
+                    driver.get("https://m.facebook.com/")
+                    wait_for_load(driver)
+                elif (int(time.time()) - last_reload_ts_mapping.get(mobileview, 0)) > 60*30:
                     driver.switch_to.window(mobileview)
                     last_reload_ts_mapping[mobileview] = int(time.time())
-                    driver.get("https://www.facebook.com/friends")
-                    wait_for_load(driver)
-                    time.sleep(1)
-                    try:
-                        for button in driver.find_elements(
-                            By.XPATH, "//div[starts-with(@aria-label, 'Confirm ') and .//span[text()='Confirm']]"
-                        ):
-                            print_with_time(button.get_attribute("aria-label"))
-                            driver.execute_script("arguments[0].click();", button)
-                            time.sleep(0.1)
-                    except Exception:
-                        pass
-                    time.sleep(0.1)
-                    try:
-                        for button in driver.find_elements(
-                            By.XPATH, "//div[starts-with(@aria-label, 'Remove ') and .//span[text()='Delete']]"
-                        ):
-                            print_with_time(button.get_attribute("aria-label"))
-                            driver.execute_script("arguments[0].click();", button)
-                            time.sleep(0.1)
-                    except Exception:
-                        pass
+                    friend_tab_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '󰎍') or contains(text(), '󱎍')]")
+                    if len(friend_tab_btn) > 0:
+                        driver.execute_script("arguments[0].click();", friend_tab_btn[0])
+                        time.sleep(1)
+                        wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, "div.loading-overlay")))
+                        try:
+                            for button in driver.find_elements(
+                                By.XPATH, "//div[starts-with(@aria-label, 'Confirm ') and .//span[text()='Confirm']]"
+                            ):
+                                print_with_time(button.get_attribute("aria-label"))
+                                driver.execute_script("arguments[0].click();", button)
+                                time.sleep(0.1)
+                        except Exception:
+                            pass
+                        time.sleep(0.1)
+                        try:
+                            for button in driver.find_elements(
+                                By.XPATH, "//div[starts-with(@aria-label, 'Remove ') and .//span[text()='Delete']]"
+                            ):
+                                print_with_time(button.get_attribute("aria-label"))
+                                driver.execute_script("arguments[0].click();", button)
+                                time.sleep(0.1)
+                        except Exception:
+                            pass
 
             driver.switch_to.window(chat_tab)
             if "aichat" in work_jobs:
