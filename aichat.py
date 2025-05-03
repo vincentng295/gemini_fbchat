@@ -554,11 +554,14 @@ try:
                                                     print_with_time(e)
                                                     continue
                                             if file_upload.state == 2:
+                                                if msg["info"].get("last_state", None) != 2:
+                                                    result.append(f"{file_name} is ready for you to view it!")
                                                 result.append(file_upload)
                                             elif file_upload.state == 10:
                                                 result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
                                             else:
-                                                result.append(f"{file_name} is not ready to view yet. Please wait a moment!")
+                                                result.append(f"{file_name} is being sent to you. Please wait a moment!")
+                                            msg["info"]["last_state"] = file_upload.state
                                     return result
 
                                 def release_unload_files(chat_history, do_all = False):
