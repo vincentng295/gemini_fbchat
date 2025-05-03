@@ -121,6 +121,8 @@ def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
 
 def get_facebook_id_from_cookies(cookies):
     for cookie in cookies:
+        if cookie.get("name", "") == "i_user":
+            return cookie.get("value", None)
         if cookie.get("name", "") == "c_user":
             return cookie.get("value", None)
     return None
