@@ -49,13 +49,24 @@ def human_typing(element, text):
 
 def parse_cookies(cookies_text):
     """
-    Parse a cookies string in the format "name1=value1;name2=value2;..."
+    Parse a cookies string in the format "name1=value1; name2=value2; ..."
     and return a list of dictionaries suitable for `add_cookie`.
     """
     cookies = []
     for cookie_pair in cookies_text.split(';'):
-        name, value = cookie_pair.strip().split('=', 1)
-        cookies.append({'name': name, 'value': value, "domain": ".facebook.com", "httpOnly": False, "path": "/", "sameSite": "Lax", "secure": False })
+        cookie_pair = cookie_pair.strip()
+        if not cookie_pair or '=' not in cookie_pair:
+            continue  # skip empty or malformed pairs
+        name, value = cookie_pair.split('=', 1)
+        cookies.append({
+            'name': name.strip(),
+            'value': value.strip(),
+            'domain': '.facebook.com',
+            'httpOnly': False,
+            'path': '/',
+            'sameSite': 'Lax',
+            'secure': False
+        })
     return cookies
 
 def sanitize_cookie_value(value):

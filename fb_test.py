@@ -1,50 +1,48 @@
-from fb_getcookies import __chrome_driver__
+import sys
+from fb_getcookies import __chrome_driver__, parse_cookies
 from selenium import webdriver
 import json
 import time
 import os
 
-# Path to your cookies.json file
-cookies_file_path = 'cookies.json'
+if __name__ == "__main__":
+    cookies_file_path = 'cookies.json'
 
-# Initialize the WebDriver (you may need to adjust this depending on the browser and its version)
-driver = __chrome_driver__(headless=False)
-try:
-    # Open Facebook
-    driver.get("https://www.facebook.com")
+    # Check if the script is run with --import <path_to_raw_cookies>
+    if len(sys.argv) == 3 and sys.argv[1] == "--import":
+        raw_cookie_path = sys.argv[2]
+        parsed_cookies = parse_cookies(raw_cookie_path)
+        with open(cookies_file_path, 'w') as f:
+            json.dump(parsed_cookies, f)
+        print(f"Cookies imported and saved to {cookies_file_path}")
 
-    # Check if the cookies.json file exists
-    if os.path.exists(cookies_file_path):
-        # Load cookies from the JSON file
-        with open(cookies_file_path, 'r') as file:
-            cookies = json.load(file)
+    # Otherwise, proceed with loading cookies in the browser
+    driver = __chrome_driver__(headless=False)
+    try:
+        driver.get("https://www.facebook.com")
 
-        # Add each cookie to the browser
-        for cookie in cookies:
-            # Make sure the cookie is not missing any essential field
-            if 'name' in cookie and 'value' in cookie:
-                driver.add_cookie(cookie)
+        if os.path.exists(cookies_file_path):
+            with open(cookies_file_path, 'r') as file:
+                cookies = json.load(file)
 
-        # Reload the page to apply cookies
-        driver.refresh()
+            for cookie in cookies:
+                if 'name' in cookie and 'value' in cookie:
+                    try:
+                        driver.add_cookie(cookie)
+                    except Exception as e:
+                        print(f"Failed to add cookie: {cookie.get('name')} - {e}")
 
-        # Wait a few seconds to ensure the page reloads and the cookies are applied
-        time.sleep(5)
+            driver.refresh()
+            time.sleep(5)
+        else:
+            print("cookies.json not found. Skipping cookie restoration.")
 
-    else:
-        print("cookies.json not found. Skipping cookie restoration.")
+        input("Press Enter to extract cookies and save them...")
 
-    # Wait for the user to press Enter before extracting and saving the cookies
-    input("Press Enter to extract cookies and save them...")
+        current_cookies = driver.get_cookies()
+        with open(cookies_file_path, 'w') as file:
+            json.dump(current_cookies, file)
 
-    # Extract cookies from the browser and save them to the file
-    current_cookies = driver.get_cookies()
-
-    # Save the cookies back to the JSON file
-    with open(cookies_file_path, 'w') as file:
-        json.dump(current_cookies, file)
-
-    print("Cookies saved successfully!")
-finally:
-    # Detach the driver (you can close it if needed)
-    driver.quit()
+        print("Cookies saved successfully!")
+    finally:
+        driver.quit()

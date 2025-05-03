@@ -41,7 +41,19 @@ def print_with_time(*args, sep=" ", end="\n", file=None, flush=False):
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-genai_key = os.getenv("GENKEY", None)
+genai_key = os.getenv("GENKEY")
+if genai_key:
+    try:
+        with open("gemini_key.txt", "w", encoding="utf-8") as f:
+            f.write(genai_key)
+    except Exception: pass
+if not genai_key:
+    try:
+        with open("gemini_key.txt", "r", encoding="utf-8") as f:
+            print("Đã đọc key từ file") 
+            genai_key = f.read()
+    except Exception: pass
+
 scoped_dir = os.getenv("SCPDIR")
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "") # Pass GitHub Token
@@ -927,7 +939,7 @@ try:
                                     break
                                 if should_not_chat:
                                     break
-                                if genai_key is None:
+                                if not genai_key:
                                     break
                                 try: # Emulate typing...
                                     actions.move_to_element(get_message_input()).click().send_keys(" ").perform()
