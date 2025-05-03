@@ -28,7 +28,7 @@ from fb_getcookies import __chrome_driver__
 from fb_getcookies import * # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
 from js_selenium import js_pushstate, inject_my_stealth_script
-from shorturl import start_shorturl_thread, register_shorturl
+from shorturl import start_shorturl_thread, register_shorturl, get_local_file_url
 
 def get_day_and_time():
     # Get current date and time
@@ -321,6 +321,15 @@ try:
         upload_file(GITHUB_TOKEN, GITHUB_REPO, f_chat_history + ".enc", STORAGE_BRANCE)
         return True
 
+    def pickle_all():
+        global chat_histories_prev_hash
+        if chat_histories_prev_hash == hash_dict(chat_histories):
+            return False
+        print_with_time("Xuất dữ liệu")
+        chat_histories_prev_hash = hash_dict(chat_histories)
+        pickle_to_file(f_facebook_infos, facebook_infos)
+        pickle_to_file(f_chat_history, chat_histories)
+
     driver.switch_to.window(mobileview)
     driver.get("https://www.facebook.com/language/")
     switched_to_english = False
@@ -542,14 +551,14 @@ try:
                                 def process_chat_history(chat_history):
                                     result = []
                                     for msg in chat_history:
-                                        final_last_msg = msg
+                                        file_result = []
+                                        final_last_msg = copy.deepcopy(msg)
                                         if msg["message_type"] == "text_message" and is_cmd(msg["info"]["msg"]):
-                                            final_last_msg = copy.deepcopy(msg)
                                             final_last_msg["info"]["msg"] = "<This is command message. It has been hidden>"
-                                        result.append(json.dumps(final_last_msg, ensure_ascii=False))
                                         if msg["message_type"] == "file" and msg["info"].get("loaded", False):
                                             file_name = msg["info"]["file_name"]
                                             mime_type = msg["info"]["mime_type"]
+                                            file_upload = None
                                             try:
                                                 # find the cached files first
                                                 file_upload = genai.get_file(file_name)
@@ -562,18 +571,22 @@ try:
                                                         get_raw_file(msg["info"]["url"], file_name)
                                                     file_upload = genai.upload_file(path = file_name, mime_type = mime_type, name = file_name)
                                                 except Exception as e:
-                                                    result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
+                                                    file_result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
                                                     print_with_time(e)
-                                                    continue
-                                            if file_upload.state == 2:
-                                                if msg["info"].get("last_state", None) != 2:
-                                                    result.append(f"{file_name} is ready for you to view it!")
-                                                result.append(file_upload)
-                                            elif file_upload.state == 10:
-                                                result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
-                                            else:
-                                                result.append(f"{file_name} is being sent to you. Please wait a moment!")
-                                            msg["info"]["last_state"] = file_upload.state
+                                            if file_upload is not None:
+                                                if file_upload.state == 2:
+                                                    if msg["info"].get("last_state", None) != 2:
+                                                        file_result.append(f"{file_name} is ready for you to view it!")
+                                                    file_result.append(file_upload)
+                                                elif file_upload.state == 10:
+                                                    file_result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
+                                                else:
+                                                    file_result.append(f"{file_name} is being sent to you. Please wait a moment!")
+                                                msg["info"]["last_state"] = file_upload.state
+                                            if msg["info"].get("url", None) is None:
+                                                final_last_msg["info"]["url"] = get_local_file_url(file_name) # Generate temp url
+                                        result.append(json.dumps(final_last_msg, ensure_ascii=False))
+                                        result.extend(file_result)
                                     return result
 
                                 def release_unload_files(chat_history, do_all = False):
@@ -1183,9 +1196,11 @@ try:
 except KeyboardInterrupt:
     print_with_time("KeyboardInterrupt: clean up, please wait")
 finally:
-    if on_github_workflows:
-        update()
     if driver is not None:
+        if on_github_workflows:
+            update()
+        else:
+            pickle_all()
         print_with_time("Quit...")
         driver.quit()
     print_with_time("Done!")
