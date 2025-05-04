@@ -1,4 +1,4 @@
-from fb_getcookies import get_fb_cookies, check_cookies, parse_cookies
+from fb_getcookies import get_fb_cookies, check_cookies, parse_cookies, get_facebook_all_id_from_cookies
 import os
 import sys
 import json
@@ -44,14 +44,7 @@ if event_path:
     login_info.pop("check_only", None)
 
     if login_info.get("username", None):
-        with open(f_login_info, "w") as f:
-            json.dump(login_info, f)
         use_backup = False
-
-if not use_backup:
-    if if_running_on_github_workflows:
-        encrypt_file(f_login_info, f_login_info + ".enc", encrypt_key)
-        upload_file(GITHUB_TOKEN, GITHUB_REPO, f_login_info + ".enc", STORAGE_BRANCE)
 
 if use_backup:
     if if_running_on_github_workflows:
@@ -83,6 +76,8 @@ if if_running_on_github_workflows:
 
 username = login_info.get("username", None)
 password = login_info.get("password", None)
+c_user = login_info.get("c_user", None)
+i_user = login_info.get("i_user", None)
 otp_secret = login_info.get("otp_secret", "")
 alt_account = login_info.get("alt_account", "0")
 
@@ -97,7 +92,7 @@ need_upload = False
 
 try:
     if cookies_text is not None:
-        with open(filename, "w") as cookies_file:
+        with open(filename, "w", encoding='utf-8') as cookies_file:
             json.dump(parse_cookies(cookies_text), cookies_file)
         need_upload = True
     elif if_running_on_github_workflows:
@@ -112,7 +107,7 @@ except Exception as e:
 
 try:
     if alt_cookies_text is not None:
-        with open(bakfilename, "w") as cookies_file:
+        with open(bakfilename, "w", encoding='utf-8') as cookies_file:
             json.dump(parse_cookies(alt_cookies_text), cookies_file)
         need_upload = True
     elif if_running_on_github_workflows:
@@ -127,6 +122,8 @@ except Exception as e:
 
 print("Kiểm tra cookies")
 ret_cookies, cookies = check_cookies(filename)
+if c_user is None:
+    c_user, i_user = get_facebook_all_id_from_cookies(cookies)
 print("Kiểm tra cookies dự phòng")
 ret_bakcookies, bakcookies = check_cookies(bakfilename)
 
@@ -151,7 +148,8 @@ if username:
             raise Exception("Facebook Login Exception")
         if cookies == None:
             time.sleep(5)
-            continue
+            continue  
+        c_user, i_user = get_facebook_all_id_from_cookies(cookies)
         break
     if cookies == None:
         print("Đăng nhập thất bại")
@@ -167,13 +165,24 @@ if username:
         if bakcookies == None:
             time.sleep(5)
             continue
+        c_user, i_user = get_facebook_all_id_from_cookies(cookies)
         break
 
+print(f"ID: {c_user}, second ID: {i_user}")
+
 # Swap cookies to reduce the chance of cookies being logged out
-with open(filename, "w") as cookies_file:
+with open(filename, "w", encoding='utf-8') as cookies_file:
     json.dump(bakcookies, cookies_file)
-with open(bakfilename, "w") as bakcookies_file:
+with open(bakfilename, "w", encoding='utf-8') as bakcookies_file:
     json.dump(cookies, bakcookies_file)
+with open(f_login_info, "w", encoding='utf-8') as f:
+    login_info["c_user"] = c_user
+    login_info["i_user"] = i_user
+    json.dump(login_info, f)
+
+if not use_backup and if_running_on_github_workflows:
+    encrypt_file(f_login_info, f_login_info + ".enc", encrypt_key)
+    upload_file(GITHUB_TOKEN, GITHUB_REPO, f_login_info + ".enc", STORAGE_BRANCE)
 
 try:
     if if_running_on_github_workflows and need_upload:

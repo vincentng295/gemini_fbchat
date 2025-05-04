@@ -116,11 +116,14 @@ try:
     except Exception:
         bak_cookies = None
 
+    c_user, i_user = None, None
     try:
         with open("logininfo.json", "r", encoding='utf-8') as f:
             login_info = json.load(f)
             onetimecode = login_info.get("onetimecode", "")
             work_jobs = parse_opts_string(login_info.get("work_jobs", "aichat,friends"))
+            c_user = login_info.get("c_user", None)
+            i_user = login_info.get("i_user", None)
     except Exception as e:
         onetimecode = ""
         work_jobs = parse_opts_string("aichat,friends")
@@ -145,6 +148,7 @@ try:
         cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
         driver.add_cookie(cookie)
     print_with_time("Đã khôi phục cookies")
+    set_facebook_id(driver, c_user, i_user)
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
     driver.get("https://www.facebook.com/me/photos_by/")
     wait_for_load(driver)
@@ -1175,6 +1179,7 @@ try:
                     for cookie in cookies:
                         cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
                         driver.add_cookie(cookie)
+                    set_facebook_id(driver, c_user, i_user)
                 elif bak_cookies is not None:
                     print_with_time("Tài khoản bị đăng xuất, sử dụng cookies dự phòng")
                     # TODO: obtain new cookies
@@ -1182,6 +1187,7 @@ try:
                     for cookie in bak_cookies:
                         cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
                         driver.add_cookie(cookie)
+                    set_facebook_id(driver, c_user, i_user)
                     bak_cookies = None
                     last_reload_ts_mapping = __init_last_reload_ts_mapping()
                     driver.get("https://www.facebook.com/")

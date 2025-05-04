@@ -1,9 +1,10 @@
 import sys
-from fb_getcookies import __chrome_driver__, parse_cookies
+from fb_getcookies import __chrome_driver__, parse_cookies, get_facebook_all_id_from_cookies
 from selenium import webdriver
 import json
 import time
 import os
+from js_selenium import get_profile_switcher_ids
 
 if __name__ == "__main__":
     cookies_file_path = 'cookies.json'
@@ -42,7 +43,9 @@ if __name__ == "__main__":
         current_cookies = driver.get_cookies()
         with open(cookies_file_path, 'w') as file:
             json.dump(current_cookies, file)
-
+        c_user, i_user = get_facebook_all_id_from_cookies(current_cookies)
+        print(f"ID: {c_user}, second ID: {i_user}")
+        print("Eligible Profile IDs:", get_profile_switcher_ids(driver))
         print("Cookies saved successfully!")
     finally:
         driver.quit()

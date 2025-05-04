@@ -13,7 +13,7 @@ import random
 from urllib.parse import urlparse
 from fbparser import get_facebook_profile_url
 import re
-from js_selenium import inject_my_stealth_script
+from js_selenium import inject_my_stealth_script, get_profile_switcher_ids
 
 def hide_email(email):
     match = re.match(r'(\w+)@(\w+)\.(\w+)', email)
@@ -131,18 +131,69 @@ def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
     return driver
 
 def get_facebook_id_from_cookies(cookies):
+    c_user, i_user = get_facebook_all_id_from_cookies(cookies)
+    return i_user if i_user is not None else c_user
+
+def get_facebook_all_id_from_cookies(cookies):
+    c_user, i_user = None, None
     for cookie in cookies:
         if cookie.get("name", "") == "i_user":
-            return cookie.get("value", None)
+            i_user = cookie.get("value", None)
         if cookie.get("name", "") == "c_user":
-            return cookie.get("value", None)
-    return None
+            c_user = cookie.get("value", None)
+    return c_user, i_user
+
+def set_facebook_id(driver, c_user, i_user = None):
+    if c_user is None:
+        return
+    driver.add_cookie({
+            'name': "c_user",
+            'value': c_user,
+            'domain': '.facebook.com',
+            'httpOnly': False,
+            'path': '/',
+            'sameSite': 'Lax',
+            'secure': False
+        })
+    if i_user is not None:
+        driver.add_cookie({
+                'name': "i_user",
+                'value': i_user,
+                'domain': '.facebook.com',
+                'httpOnly': False,
+                'path': '/',
+                'sameSite': 'Lax',
+                'secure': False
+            })
+    else:
+        driver.delete_cookie("i_user")
 
 def is_facebook_logged_out(cookies):
     for cookie in cookies:
         if cookie.get("name", "") == "xs":
             return (cookie.get("value", None) is None)
     return True
+
+def delete_cookie(cookies, name):
+    # Remove any existing cookie with the same name
+    cookies = [c for c in cookies if c.get("name") != name]
+
+def add_cookie(cookies, cookie):
+    """
+    Add or update a cookie in the cookies list.
+    Parameters:
+    - cookies (list of dict): List of cookie dictionaries.
+    - cookie (dict): A single cookie dictionary to add or update.
+    Returns:
+    - list of dict: Updated list of cookies.
+    """
+    name = cookie.get("name")
+    if not name:
+        raise ValueError("Cookie must have a 'name' field")
+    # Remove any existing cookie with the same name
+    delete_cookie(cookies, name)
+    # Append the new cookie
+    cookies.append(cookie)
 
 def check_cookies_(cookies):
     if cookies == None:
@@ -161,7 +212,6 @@ def check_cookies_(cookies):
         print(f"Error: {e}")
         return 0
     return 1
-
 
 def check_cookies(filename=None):
     try:
@@ -327,15 +377,12 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         )
         time.sleep(3)
 
-        if alt_account > 0:
-            accounts_btn = find_element_when_clickable(By.CSS_SELECTOR, 'image[style="height:40px;width:40px"]')
-            actions.move_to_element(accounts_btn).click().perform() # Click on accounts setting
-            time.sleep(1)
-            account_list_panel = find_element_when_clickable(By.CSS_SELECTOR, 'div[role="list"][class="html-div xdj266r x11i5rnm xat24cr x1mh8g0r xexx8yu x4uap5 x18d9i69 xkhd6sd"]')
-            account_list_btns = account_list_panel.find_elements(By.CSS_SELECTOR, 'div[role="listitem"]')
-            if alt_account <= len(account_list_btns):
-                actions.move_to_element(account_list_btns[alt_account -1]).click().perform()
-                time.sleep(3)
+        c_user, i_user = get_facebook_all_id_from_cookies(driver.get_cookies())
+        if isinstance(alt_account, int) and alt_account > 0:
+            ids = get_profile_switcher_ids(driver)
+            if alt_account <= len(ids):
+                set_facebook_id(driver, c_user, ids[alt_account -1])
+                print(f"Đã chuyển sang: {ids[alt_account -1]}")
 
         driver.get("https://www.facebook.com/profile.php")
 

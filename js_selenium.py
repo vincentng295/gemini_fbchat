@@ -72,3 +72,33 @@ def inject_my_stealth_script(driver):
         "Page.addScriptToEvaluateOnNewDocument",
         {"source": stealth_script}
     )
+
+def get_profile_switcher_ids(driver):
+    # --- Inject JS to extract profile IDs ---
+    script = """
+    const scripts = document.querySelectorAll('script[type="application/json"]');
+    const profileSwitcherProfiles = [];
+
+    scripts.forEach((script) => {
+      try {
+        const json = JSON.parse(script.textContent);
+
+        const nodes =
+          json?.require?.[0]?.[3]?.[0]?.__bbox?.require?.[0]?.[3]?.[1]?.__bbox
+            ?.result?.data?.viewer?.actor?.profile_switcher_eligible_profiles
+            ?.nodes;
+
+        if (nodes && Array.isArray(nodes)) {
+          profileSwitcherProfiles.push(...nodes.map(n => n.profile.id));
+        }
+      } catch (e) {
+        // skip errors
+      }
+    });
+
+    return profileSwitcherProfiles;
+    """
+
+    # --- Execute script and get the result ---
+    profile_ids = driver.execute_script(script)
+    return profile_ids
