@@ -103,8 +103,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.SCPDIR }}
-          key: |
-            scoped-dir-${{ runner.os }}-${{ hashFiles('logininfo.json') }}
+          key: scoped-dir-${{ runner.os }}-${{ hashFiles('logininfo.json') }}
+          restore-keys: |
             scoped-dir-${{ runner.os }}-
 
       # Run AI Chat on Messenger account (schedule)

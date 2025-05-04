@@ -27,6 +27,7 @@ ai_prompt = None
 
 # Get the path to the event payload file
 event_path = os.getenv('GITHUB_EVENT_PATH')
+login_info = {}
 
 if event_path:
     # Read the event data from the file
@@ -37,17 +38,20 @@ if event_path:
     # Example for workflow_dispatch input
     login_info = event_data.get('inputs', {})
 
-    cookies_text = login_info.get("cookies_text", None)
-    login_info["cookies_text"] = None
-    alt_cookies_text = login_info.get("alt_cookies_text", None)
-    login_info["alt_cookies_text"] = None
-    ai_prompt = login_info.get("ai_prompt", None)
-    login_info["ai_prompt"] = None
+    cookies_text = login_info.pop("cookies_text", None)
+    alt_cookies_text = login_info.pop("alt_cookies_text", None)
+    ai_prompt = login_info.pop("ai_prompt", None)
+    login_info.pop("check_only", None)
 
     if login_info.get("username", None):
         with open(f_login_info, "w") as f:
             json.dump(login_info, f)
         use_backup = False
+
+if not use_backup:
+    if if_running_on_github_workflows:
+        encrypt_file(f_login_info, f_login_info + ".enc", encrypt_key)
+        upload_file(GITHUB_TOKEN, GITHUB_REPO, f_login_info + ".enc", STORAGE_BRANCE)
 
 if use_backup:
     if if_running_on_github_workflows:
@@ -177,12 +181,10 @@ try:
         print("Đang mã hóa tập tin trước khi tải lên...")
         encrypt_file(filename, filename + ".enc", encrypt_key)
         encrypt_file(bakfilename, bakfilename + ".enc", encrypt_key)
-        encrypt_file(f_login_info, f_login_info + ".enc", encrypt_key)
         print("Mã hóa thành công!")
         # Upload the file onto repo
         upload_file(GITHUB_TOKEN, GITHUB_REPO, filename + ".enc", STORAGE_BRANCE)
         upload_file(GITHUB_TOKEN, GITHUB_REPO, bakfilename + ".enc", STORAGE_BRANCE)
-        upload_file(GITHUB_TOKEN, GITHUB_REPO, f_login_info + ".enc", STORAGE_BRANCE)
         print(f"Đã tải tệp lên branch: {STORAGE_BRANCE}")
 except Exception as e:
     print(e)
