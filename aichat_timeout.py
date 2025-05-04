@@ -1,5 +1,7 @@
 import subprocess
 import threading
+import calc
+import sys
 
 def run_with_timeout(cmd, timeout_sec):
     """Run a command with a timeout on Windows."""
@@ -44,6 +46,10 @@ def run_with_timeout(cmd, timeout_sec):
 
 # Example usage:
 command = "python aichat.py"
-timeout_seconds = 14400  # 4 hours
 
+if __name__ == "__main__" and len(sys.argv) >= 2:
+    timeout_seconds = int(sys.argv[1])
+else:
+    timeout_seconds = calc.to_sec(5, 30, 0)
+print("Run with limited time:", timeout_seconds)
 run_with_timeout(command, timeout_seconds)
