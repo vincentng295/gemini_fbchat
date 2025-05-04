@@ -31,12 +31,9 @@ def get_facebook_profile_url(selenium_cookies):
     try:
         # Convert list format to dictionary for requests
         cookies = {cookie["name"]: cookie["value"] for cookie in selenium_cookies}
-
         # Send request to Facebook profile page
-        response = requests.get("https://www.facebook.com/profile.php", cookies=cookies, allow_redirects=True)
-
+        response = requests.head("https://www.facebook.com/profile.php", cookies=cookies, allow_redirects=True)
         # Return the final URL (after any redirections)
         return response.url
-
     except Exception as e:
         return f"Error: {e}"
