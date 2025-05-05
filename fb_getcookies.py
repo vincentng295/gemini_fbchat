@@ -248,7 +248,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
             return None
 
         driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": True})
-        driver.get("https://www.facebook.com/")
+        driver.get("https://www.facebook.com")
         wait.until(
             lambda d: d.execute_script("return document.readyState") == "complete"
         )
@@ -264,7 +264,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
             print("Đã khôi phục cookies")
 
         driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
-        driver.get("https://www.facebook.com/")
+        driver.get("https://www.facebook.com")
         wait.until(
             lambda d: d.execute_script("return document.readyState") == "complete"
         )
@@ -304,7 +304,18 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         wait.until(
             lambda d: d.execute_script("return document.readyState") == "complete"
         )
-        time.sleep(5)
+        
+        _url = base_url_with_path(driver.current_url)
+        print(_url)
+        if  (_url == "www.facebook.com"):
+            print(f"{hide_email(username)}: Đang chờ Facebook xác thực đăng nhập...")
+            for i in range(300):
+                _url = base_url_with_path(driver.current_url)
+                if  (_url == "www.facebook.com"):
+                    time.sleep(1)
+                else:
+                    break
+        print(_url)
         _url = base_url_with_path(driver.current_url)
         if  (_url == "www.facebook.com/two_step_verification/two_factor" or 
             _url == "www.facebook.com/auth_platform/afad"):
