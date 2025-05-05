@@ -1190,6 +1190,10 @@ try:
                         cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
                         driver.add_cookie(cookie)
                     set_facebook_id(driver, c_user, i_user)
+                    last_reload_ts_mapping = __init_last_reload_ts_mapping()
+                    driver.get("https://www.facebook.com/")
+                    wait_for_load(driver)
+                    time.sleep(1)
                 elif bak_cookies is not None:
                     print_with_time("Tài khoản bị đăng xuất, sử dụng cookies dự phòng")
                     # TODO: obtain new cookies
