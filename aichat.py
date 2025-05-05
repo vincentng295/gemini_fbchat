@@ -30,6 +30,14 @@ from aichat_utils import *  # For custom utility functions
 from js_selenium import js_pushstate, inject_my_stealth_script
 from shorturl import start_shorturl_thread, register_shorturl, get_local_file_url
 
+import re
+
+def is_only_whitespace_or_nonbmp(s):
+    return all(
+        c.isspace() or ord(c) > 0xFFFF
+        for c in s
+    )
+
 def get_day_and_time():
     # Get current date and time
     current_datetime = datetime.now(pytz.timezone('Asia/Ho_Chi_Minh'))
@@ -1114,6 +1122,8 @@ try:
                                                     print_with_time(f"Không thể gửi nhạc: {itunes_keyword}")
                                             if is_image_dropped:
                                                 get_message_input().send_keys("\n") # Press Enter to send music
+                                            if is_only_whitespace_or_nonbmp(reply_msg):
+                                                reply_msg = "OK" + reply_msg
                                             print_with_time("* AI Trả lời:", reply_msg if "debug" in work_jobs else "<1 tin nhắn>")
                                             send_keys_long_text(get_message_input(), remove_non_bmp_characters(replace_emoji_with_shortcut(reply_msg)))
                                             # There maybe newer msg while AI process chat
