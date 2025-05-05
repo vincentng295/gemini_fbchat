@@ -37,3 +37,17 @@ def get_facebook_profile_url(selenium_cookies):
         return response.url
     except Exception as e:
         return f"Error: {e}"
+
+def get_facebook_name(fbid, selenium_cookies=None):
+    import requests
+    session = requests.Session()
+    cookies = {cookie["name"]: cookie["value"] for cookie in selenium_cookies} if selenium_cookies else None
+    fburl = f"https://www.facebook.com/{fbid}/?sk=about"
+    response = session.get(fburl, cookies=cookies, allow_redirects=True)
+    if response.status_code != 200 or fburl == response.url:
+        return None
+    soup = BeautifulSoup(response.text, 'html.parser')
+    title_tag = soup.find('title')
+    return title_tag.text
+
+    

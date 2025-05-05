@@ -23,7 +23,7 @@ from selenium.common.exceptions import *
 import google.generativeai as genai  # For generative AI functionalities
 from pickle_utils import *  # For pickling data
 from github_utils import *  # For GitHub file operations
-from fbparser import get_facebook_profile_url, get_facebook_id
+from fbparser import get_facebook_profile_url, get_facebook_id, get_facebook_name
 from fb_getcookies import __chrome_driver__ 
 from fb_getcookies import * # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
@@ -157,6 +157,7 @@ try:
         driver.add_cookie(cookie)
     print_with_time("Đã khôi phục cookies")
     set_facebook_id(driver, c_user, i_user)
+    cookies = driver.get_cookies()
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
     driver.get("https://www.facebook.com/me/photos_by/")
     wait_for_load(driver)
@@ -183,11 +184,8 @@ try:
     self_facebook_info = pickle_from_file(f_self_facebook_info, { })
     
     sk_list = [
-            "about_work_and_education", 
-            "about_places", 
-            "about_contact_and_basic_info", 
-            "about_family_and_relationships", 
-            "about_details"
+            "about_places",
+            "about_contact_and_basic_info",
         ]
     self_url = get_facebook_profile_url(cookies)
 
@@ -213,21 +211,23 @@ try:
     if self_facebook_info.get("Facebook name", None) is None or self_facebook_info.get("Facebook id", "") != self_fbid:
         print_with_time("Đang đọc thông tin cá nhân...")
         wait_for_load(driver)
-        
-        find_myname = driver.find_elements(By.CSS_SELECTOR, 'h1[class^="html-h1 "]')
-        myname = find_myname[-1].text
+
+        myname = get_facebook_name("me", cookies)
         
         self_facebook_info = { "Facebook name" : myname, "Facebook id" : self_fbid, "Facebook url" :  self_url }
         # Loop through the profile sections
         for sk in sk_list:
             # Build the full URL for the profile section
+            js_pushstate(driver, f"/0")
             js_pushstate(driver, f"/me?sk={sk}")
-            time.sleep(3)
             
             # Wait for the page to load
             wait_for_load(driver)
 
             # Find the info elements
+            wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div[class="xyamay9 xqmdsaz x1gan7if x1swvt13"] > div'))
+            )
             info_elements = driver.find_elements(By.CSS_SELECTOR, 'div[class="xyamay9 xqmdsaz x1gan7if x1swvt13"] > div')
 
             # Loop through each info element
@@ -488,14 +488,16 @@ try:
                                             facebook_info = None
 
                                     if facebook_info == None:
-                                        js_pushstate(driver, profile_href)
-
                                         print_with_time(f"Đang lấy thông tin cá nhân từ {profile_link}")
-                                        
-                                        wait_for_load(driver)
-                                        time.sleep(3)
-                                        find_who_chatted = driver.find_elements(By.CSS_SELECTOR, 'h1[class^="html-h1 "]')
-                                        who_chatted = find_who_chatted[-1].text
+                                        parsed_url = urlparse(profile_link)
+                                        # Remove the trailing slash from the path, if it exists
+                                        urlpath = parsed_url.path
+                                        # Split the path and extract the ID
+                                        facebook_id = get_last_part(urlpath)
+                                        who_chatted = get_facebook_name(facebook_id, cookies)
+                                        if not who_chatted:
+                                            print_with_time(f"Không thể lấy thông tin")
+                                            continue
                                         
                                         facebook_info = { 
                                             "Facebook name" : who_chatted,
@@ -504,14 +506,17 @@ try:
                                         }
                                         for sk in sk_list:
                                             # Build the full URL for the profile section
+                                            js_pushstate(driver, f"/0")
                                             js_pushstate(driver, f"{profile_href}?sk={sk}")
-                                            time.sleep(3)
 
                                             # Wait for the page to load
                                             wait_for_load(driver)
                                             #time.sleep(0.5)
 
                                             # Find the info elements
+                                            wait.until(
+                                                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div[class="xyamay9 xqmdsaz x1gan7if x1swvt13"] > div'))
+                                                )
                                             info_elements = driver.find_elements(By.CSS_SELECTOR, 'div[class="xyamay9 xqmdsaz x1gan7if x1swvt13"] > div')
 
                                             # Loop through each info element
