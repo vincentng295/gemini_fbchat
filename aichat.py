@@ -1243,7 +1243,7 @@ try:
                     set_facebook_id(driver, c_user, i_user)
                     bak_cookies = None
                     last_reload_ts_mapping = __init_last_reload_ts_mapping()
-                    driver.get("https://www.facebook.com/")
+                    driver.get("https://www.facebook.com/me")
                     wait_for_load(driver)
                     time.sleep(1)
                 else:
