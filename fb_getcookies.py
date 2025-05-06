@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 from fbparser import get_facebook_profile_url
 import re
 from js_selenium import inject_my_stealth_script, get_profile_switcher_ids
+from datetime import datetime
 
 def hide_email(email):
     match = re.match(r'(\w+)@(\w+)\.(\w+)', email)
@@ -27,6 +28,13 @@ import pyotp
 def generate_otp(secret_key):
     totp = pyotp.TOTP(secret_key.replace(" ",""))
     return totp.now()
+
+def wait_until_safe_totp_time():
+    while True: 
+        second = datetime.now().second
+        if 0 <= second <= 20 or 30 <= second <= 50:
+            return True
+        time.sleep(1)
 
 def is_facebook_domain(url):
     parsed_url = urlparse(url)
@@ -351,8 +359,10 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
                     (By.XPATH, '//span[contains(text(), "Continue")]')
                     ])
                 time.sleep(1)
+                wait_until_safe_totp_time()
                 print(f"{hide_email(username)}: Đã nhập mã OTP")
                 actions.move_to_element(other_veri_btn).click().send_keys(generate_otp(otp_secret) + "\n").perform()
+                time.sleep(1)
                 print(f"{hide_email(username)}: Nhấn xác nhận")
                 actions.move_to_element(continue_btn).click().perform() # Click Confirmed
             except Exception as e:
