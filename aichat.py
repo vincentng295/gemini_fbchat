@@ -285,6 +285,16 @@ try:
         )
 
     model = load_model()
+    summary_model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash",
+        system_instruction = get_devmode_prompt(),  # Your overall guidance to the model
+        safety_settings={
+            'harm_category_harassment': 'BLOCK_NONE',
+            'harm_category_hate_speech': 'BLOCK_NONE',
+            'harm_category_sexually_explicit': 'BLOCK_NONE',
+            'harm_category_dangerous_content': 'BLOCK_NONE',
+        }
+    )
 
     f_facebook_infos = "facebook_infos.bin"
     try:
@@ -1022,8 +1032,8 @@ try:
                                                     __num_file += 1  # Increment first
                                                     msg["info"]["loaded"] = __num_file <= max_file  # Compare after incrementing
                                         prompt_to_summary = process_chat_history(chat_history[:summary_lines])
-                                        prompt_to_summary.append(">> You are entering the chat summarization phase to optimize memory usage while maintaining a natural conversational flow. Your task is to summarize the following conversation as if you were recalling past messages naturally. Tell me key information about this chat conversation, including all previous summaries, and retain important details for future reference. The summary should be in English, direct, unquoted, and without markdown.")
-                                        response = model.generate_content(prompt_to_summary)
+                                        prompt_to_summary.append(">> Tell me key information about this chat conversation, including all previous summaries, and retain important details for future reference. The summary should be in English, direct, unquoted, and without markdown.")
+                                        response = summary_model.generate_content(prompt_to_summary)
                                         release_unload_files(chat_history[:summary_lines], True)
                                         if not response.candidates:
                                             caption = "Old chat conversation is deleted"
