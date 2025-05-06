@@ -181,8 +181,6 @@ try:
             print_with_time(e)
 
     chat_histories = pickle_from_file(f_chat_history, {})
-    if chat_histories.get("status", None) is None:
-        chat_histories["status"] = {}
     chat_histories_prev_hash = hash_dict(chat_histories)
 
     self_facebook_info = pickle_from_file(f_self_facebook_info, { })
@@ -308,6 +306,7 @@ try:
         }
     )
 
+    # Facebook info
     f_facebook_infos = "facebook_infos.bin"
     try:
         if on_github_workflows:
@@ -315,6 +314,22 @@ try:
     except Exception as e:
         print_with_time(e)
     facebook_infos = pickle_from_file(f_facebook_infos, {})
+    # Chat info
+    f_chat_infos = "chat_infos.bin"
+    try:
+        if on_github_workflows:
+            get_file(GITHUB_TOKEN, GITHUB_REPO, f_chat_infos + ".enc", STORAGE_BRANCE, f_chat_infos + ".enc")
+            decrypt_file(f_chat_infos + ".enc", f_chat_infos, encrypt_key)
+    except Exception as e:
+        print_with_time(e)
+    chat_infos = pickle_from_file(f_chat_infos, {})
+    
+    # Migrate from old to new list
+    __old_status = chat_histories.pop("status", {})
+    if __old_status:
+        for key, val in __old_status.items():
+            chat_infos[key] = { "chatable" : val }
+    del __old_status
 
     ######################################
     print_with_time("Bắt đầu khởi động!")
@@ -345,6 +360,8 @@ try:
         if chat_histories_prev_hash == hash_dict(chat_histories):
             return False
         print_with_time("Sao lưu bộ nhớ trò chuyện")
+        pickle_to_file(f_chat_infos + ".enc", chat_infos, encrypt_key)
+        upload_file(GITHUB_TOKEN, GITHUB_REPO, f_chat_infos + ".enc", STORAGE_BRANCE)
         chat_histories_prev_hash = hash_dict(chat_histories)
         pickle_to_file(f_facebook_infos, facebook_infos)
         upload_file(GITHUB_TOKEN, GITHUB_REPO, f_facebook_infos, STORAGE_BRANCE)
@@ -355,8 +372,6 @@ try:
             except Exception:
                 pass # Ignore all error
             for msg_id, chat_history in chat_histories.items():
-                if msg_id == "status":
-                    continue
                 for msg in chat_history:
                     if msg["message_type"] == "file" and msg["info"]["url"] == None:
                         # Update url of file
@@ -374,6 +389,7 @@ try:
         chat_histories_prev_hash = hash_dict(chat_histories)
         pickle_to_file(f_facebook_infos, facebook_infos)
         pickle_to_file(f_chat_history, chat_histories)
+        pickle_to_file(f_chat_infos, chat_infos)
 
     driver.switch_to.window(mobileview)
     driver.get("https://www.facebook.com/language/")
@@ -576,12 +592,14 @@ try:
                                     group_name = main.find_elements(By.CSS_SELECTOR, "h2")
                                     who_chatted = group_name[0].text if len(group_name) > 0 else chat_info["name"]
                                     facebook_info = { "Facebook group name" : who_chatted, "Facebook url" :  driver.current_url }
-
-                                parsed_url = urlparse(facebook_info.get("Facebook url", None))
-                                # Remove the trailing slash from the path, if it exists
+                                # Parse and get id
+                                parsed_url = urlparse(driver.current_url)
                                 urlpath = parsed_url.path
-                                # Split the path and extract the ID
-                                facebook_id = get_last_part(urlpath)
+                                message_id = get_last_part(urlpath)
+                                if facebook_id is None:
+                                    parsed_url = urlparse(facebook_info.get("Facebook url", None))
+                                    urlpath = parsed_url.path
+                                    facebook_id = get_last_part(urlpath)
                             except Exception as e:
                                 print_with_time(e)
                                 continue
@@ -589,12 +607,10 @@ try:
                         print_with_time(f"Tin nhắn mới từ {who_chatted} (ID: {facebook_id})")
                         if "debug" in work_jobs:
                             print_with_time(json.dumps(facebook_info, ensure_ascii=False, indent=2))
+                        chat_infos.setdefault(message_id, {})["name"] = who_chatted
 
                         while True:
                             try:
-                                parsed_url = urlparse(driver.current_url)
-                                urlpath = parsed_url.path
-                                message_id = get_last_part(urlpath)
                                 # Wait until box is visible
                                 try:
                                     time.sleep(1)
@@ -678,7 +694,7 @@ try:
                                 command_result = []
                                 reset = False
                                 should_stop = False
-                                should_not_chat = chat_histories["status"].get(message_id, True) == False or chat_histories["status"].get(facebook_id, True) == False
+                                should_not_chat = chat_infos.get(message_id, {}).get("chatable", True) == False or chat_infos.get(facebook_id, {}).get("chatable", True) == False
                                 max_video = 10
                                 num_video = 0
                                 max_file = 10
@@ -764,8 +780,8 @@ try:
                                             msg = msg_frame.text
                                             mentioned_to_me = msg_frame.find_elements(By.CSS_SELECTOR, f'a[href="https://www.facebook.com/{self_fbid}/"]')
                                             if len(mentioned_to_me) > 0:
-                                                chat_histories["status"][message_id] = True
-                                                chat_histories["status"][facebook_id] = True
+                                                chat_infos.setdefault(message_id, {})["chatable"] = True
+                                                chat_infos.setdefault(facebook_id, {})["chatable"] = True
                                                 should_not_chat = False
                                                 chat_history_new.insert(0, {"message_type" : "new_chat", "info" : "You are mentioned in chat"})
                                         except Exception:
@@ -882,26 +898,26 @@ try:
                                 def mute_chat(mode):
                                     global should_not_chat
                                     if mode == "true" or mode == "1":
-                                        chat_histories["status"][message_id] = False
-                                        chat_histories["status"][facebook_id] = False
+                                        chat_infos.setdefault(message_id, {})["chatable"] = False
+                                        chat_infos.setdefault(facebook_id, {})["chatable"] = False
                                         should_not_chat = True
                                         return f'Bot has been muted'
                                     if mode == "false" or mode == "0":
-                                        chat_histories["status"][message_id] = True
-                                        chat_histories["status"][facebook_id] = True
+                                        chat_infos.setdefault(message_id, {})["chatable"] = True
+                                        chat_infos.setdefault(facebook_id, {})["chatable"] = True
                                         return f'Bot has been unmuted'
                                     return f'Unknown mute mode! Use "1" to mute the bot or "0" to unmute the bot.'
 
                                 def mute_by_id(chatid):
                                     if chatid == None:
                                         chatid = message_id
-                                    chat_histories["status"][chatid] = False
+                                    chat_infos.setdefault(chatid, {})["chatable"] = False
                                     return f"Bot is muted in chat with id {chatid}"
 
                                 def unmute_by_id(chatid):
                                     if chatid == None:
                                         chatid = message_id
-                                    chat_histories["status"][chatid] = True
+                                    chat_infos.setdefault(chatid, {})["chatable"] = True
                                     return f"Bot is unmuted in chat with id {chatid}"
 
                                 def dump_chat(chatid):
@@ -911,7 +927,10 @@ try:
 
                                 def get_info(name):
                                     if name == "inbox":
-                                        return json.dumps(chat_list_all, ensure_ascii=False, indent=2)
+                                        text = "LIST:  "
+                                        for key, val in chat_infos.items():
+                                            text += f" [ ID:{key} CHAT:{val.get('chatable', True)} NAME:{val.get('name', 'Unknown')} ] "
+                                        return text
                                     if name == "cookies":
                                         return f'{selenium_cookies_to_cookie_header(cookies)}'
                                     if name == "bakcookies":
@@ -1173,8 +1192,8 @@ try:
                                                 print_with_time("* Bot yêu cầu dừng trả lời tin nhắn")
                                                 chat_history.append({"message_type" : "conversation_event", "info" : "You have left the conversation"})
                                                 if is_group_chat and "aichat_nobye" not in work_jobs:
-                                                    chat_histories["status"][message_id] = False
-                                                    chat_histories["status"][facebook_id] = False
+                                                    chat_infos.setdefault(message_id, {})["chatable"] = False
+                                                    chat_infos.setdefault(facebook_id, {})["chatable"] = False
                                                 for bye_msg in bye_msg_list:
                                                     if bye_msg:
                                                         get_message_input().send_keys(remove_non_bmp_characters(bye_msg) + "\n")
