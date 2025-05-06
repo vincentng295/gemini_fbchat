@@ -29,6 +29,7 @@ from fb_getcookies import * # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
 from js_selenium import js_pushstate, inject_my_stealth_script
 from shorturl import start_shorturl_thread, register_shorturl, get_local_file_url
+from PIL import Image
 
 import re
 
@@ -88,6 +89,8 @@ print_with_time(cwd)
 driver = None
 
 def update():
+    pass
+def pickle_all():
     pass
 
 try:
@@ -204,9 +207,16 @@ try:
                     src = image.get_attribute("src")
                     src = register_shorturl(urljoin(driver.current_url, src))
                     alt = image.get_attribute("alt")
-                    photos[src] = alt
+                    image_bytes = download_file_to_bytesio(src)
+                    image = Image.open(image_bytes)
+                    photos[src] = { "caption" : alt, "image" : image }
         except Exception:
             pass
+
+    self_image_prompt = ["Your photos that you uploaded on Facebook:"]
+    for src, img in photos.items():
+        self_image_prompt.append(json.dumps({ "url" : src, "caption" : img["caption"] }, ensure_ascii=False))
+        self_image_prompt.append(img["image"])
 
     if self_facebook_info.get("Facebook name", None) is None or self_facebook_info.get("Facebook id", "") != self_fbid:
         print_with_time("Đang đọc thông tin cá nhân...")
@@ -245,9 +255,10 @@ try:
         pickle_to_file(f_self_facebook_info, self_facebook_info)
         if on_github_workflows:
             upload_file(GITHUB_TOKEN, GITHUB_REPO, f_self_facebook_info, STORAGE_BRANCE)
-    self_facebook_info["Facebook photos"] = photos
     if "debug" in work_jobs:
         print_with_time(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
+        for src, img in photos.items():
+            print_with_time(json.dumps({ "url" : src, "caption" : img["caption"] }, ensure_ascii=False))
     myname = self_facebook_info["Facebook name"]
     gemini_dev_mode = work_jobs.get("aichat", "normal") == "devmode"
     genai.configure(api_key=genai_key)
@@ -1044,6 +1055,7 @@ try:
                                     
                           
                                 prompt_list.insert(0, header_prompt)
+                                prompt_list[:0] = self_image_prompt
                                 exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your \"message\" is here - “Tin nhắn” của bạn ở đây 😊"}, "mentioned_message" : None }, indent = 4, ensure_ascii=False)
                                 prompt_list.append(f'>> Generate a response in properly formatted JSON to reply back to user.\nExample:\n{exam}\n')
                                 
