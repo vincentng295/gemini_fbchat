@@ -31,7 +31,7 @@ from js_selenium import js_pushstate, inject_my_stealth_script
 from shorturl import start_shorturl_thread, register_shorturl, get_local_file_url
 from PIL import Image
 import threading
-from pasterman import post_to_0x0
+from pasterman import pasterman
 
 import re
 
@@ -924,14 +924,14 @@ try:
                                 def dump_chat(chatid):
                                     if chatid == None:
                                         chatid = message_id
-                                    return post_to_0x0(json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2))
+                                    return pasterman(json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2))
 
                                 def get_info(name):
                                     if name == "inbox":
                                         text = "LIST:  \n"
                                         for key, val in chat_infos.items():
                                             text += f"- ID:{key} CHAT:{val.get('chatable', True)} NAME:{val.get('name', 'Unknown')}\n"
-                                        return post_to_0x0(text)
+                                        return pasterman(text)
                                     if name == "cookies":
                                         return f'{selenium_cookies_to_cookie_header(cookies)}'
                                     if name == "bakcookies":
@@ -939,9 +939,9 @@ try:
                                     if name == "enckey":
                                         return PASSWORD
                                     if name == "intro":
-                                        return post_to_0x0(ai_prompt)
+                                        return pasterman(ai_prompt)
                                     if name == "info":
-                                        return post_to_0x0(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
+                                        return pasterman(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
                                     return f"Invalid argument: {name}"
 
                                 def terminate(__):
