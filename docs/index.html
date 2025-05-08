@@ -67,61 +67,11 @@
             <h2>⚙️ Bước 4: Cấu hình GitHub Workflows</h2>
             <p>Vào <strong>Settings</strong> &gt; <strong>Actions</strong> &gt; <strong>General</strong>, trong phần <strong><em>Workflow permissions</em></strong>, chọn <strong>Read and write permissions</strong> để GitHub có thể upload file đăng nhập Facebook.</p>
             <p><img src="images/2aa37455-7517-485b-ae4e-60d6e98846b3.png" alt="image" /></p>
-            <p>Tiếp theo, vào <strong>Settings</strong> &gt; <strong>Secrets and variables</strong> &gt; <strong>Actions</strong> và thêm ba secret sau:</p>
+            <p>Tiếp theo, vào <strong>Settings</strong> &gt; <strong>Secrets and variables</strong> &gt; <strong>Actions</strong> và thêm hai secret sau:</p>
             <p><img src="images/github-secrets-setup.png" alt="image" /></p>
             <ul>
                 <li><code class="language-plaintext highlighter-rouge">PASSWORD</code>: Mật khẩu để giải mã các tệp mã hóa, bạn tự đặt nhé</li>
                 <li><code class="language-plaintext highlighter-rouge">GENKEY</code>: <a href="https://aistudio.google.com/app/apikey">Google Developer API key</a> để sử dụng Gemini AI</li>
-                <li>
-                    <p><code class="language-plaintext highlighter-rouge">PAT</code>: <a href="https://github.com/settings/tokens/new">Personal access token (classic)</a> với <b>Expiration: No expiration</b> và quyền sau để chạy Github worklows lâu hơn</p>
-                    <ul>
-                        <li class="Box-row px-2 py-1 js-check-scope-container" data-scope-for="workflow">
-                            <div class="form-checkbox my-2">
-                                <div class="col-4 float-left "><input checked class="js-checkbox-scope parent-checkbox-scope" name="oauth_access[scopes][]" type="checkbox" value="workflow" data-check-related-scopes="repo" data-selected-by="self" /><span class="color-fg-default text-bold" data-view-component="true">repo</span></div>
-                                <div class="col-8 float-left"><span class="color-fg-muted text-normal">Full control of private repositories</span></div>
-                            </div>
-                            <ul class="list-style-none">
-                                <li class=" js-check-scope-container" data-scope-for="repo:status">
-                                    <div class="form-checkbox my-2">
-                                        <div class="col-4 float-left pl-3"><input checked class="js-checkbox-scope" disabled="disabled" name="oauth_access[scopes][]" type="checkbox" value="repo:status" data-selected-by="repo workflow"/><span class="color-fg-default text-normal" data-view-component="true">repo:status</span></div>
-                                        <div class="col-8 float-left"><span class="color-fg-muted text-normal">Access commit status</span></div>
-                                    </div>
-                                </li>
-                                <li class=" js-check-scope-container" data-scope-for="repo_deployment">
-                                    <div class="form-checkbox my-2">
-                                        <div class="col-4 float-left pl-3"><input checked class="js-checkbox-scope" disabled="disabled" name="oauth_access[scopes][]" type="checkbox" value="repo_deployment" data-selected-by="repo workflow" /><span class="color-fg-default text-normal" data-view-component="true">repo_deployment</span></div>
-                                        <div class="col-8 float-left"><span class="color-fg-muted text-normal">Access deployment status</span></div>
-                                    </div>
-                                </li>
-                                <li class=" js-check-scope-container" data-scope-for="public_repo">
-                                    <div class="form-checkbox my-2">
-                                        <div class="col-4 float-left pl-3"><input checked class="js-checkbox-scope" disabled="disabled" name="oauth_access[scopes][]" type="checkbox" value="public_repo" data-selected-by="repo workflow" /><span class="color-fg-default text-normal" data-view-component="true">public_repo</span></div>
-                                        <div class="col-8 float-left"><span class="color-fg-muted text-normal">Access public repositories</span></div>
-                                    </div>
-                                </li>
-                                <li class=" js-check-scope-container" data-scope-for="repo:invite">
-                                    <div class="form-checkbox my-2">
-                                        <div class="col-4 float-left pl-3"><input checked class="js-checkbox-scope" disabled="disabled" name="oauth_access[scopes][]" type="checkbox" value="repo:invite" data-selected-by="repo workflow" /><span class="color-fg-default text-normal" data-view-component="true">repo:invite</span></div>
-                                        <div class="col-8 float-left"><span class="color-fg-muted text-normal">Access repository invitations</span></div>
-                                    </div>
-                                </li>
-                                <li class=" js-check-scope-container" data-scope-for="security_events">
-                                    <div class="form-checkbox my-2">
-                                        <div class="col-4 float-left pl-3"><input checked class="js-checkbox-scope" disabled="disabled" name="oauth_access[scopes][]" type="checkbox" value="security_events" data-selected-by="repo workflow" /><span class="color-fg-default text-normal" data-view-component="true">security_events</span></div>
-                                        <div class="col-8 float-left"><span class="color-fg-muted text-normal">Read and write security events</span></div>
-                                    </div>
-                                </li>
-                            </ul>
-                        </li>
-                        <li class="Box-row px-2 py-1 js-check-scope-container" data-scope-for="workflow">
-                            <div class="form-checkbox my-2">
-                                <div class="col-4 float-left "><input checked class="js-checkbox-scope parent-checkbox-scope" name="oauth_access[scopes][]" type="checkbox" value="workflow" data-check-related-scopes="repo" data-selected-by="self" /><span class="color-fg-default text-bold" data-view-component="true">workflow</span></div>
-                                <div class="col-8 float-left"><span class="color-fg-muted text-normal">Update GitHub Action workflows</span></div>
-                            </div>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
             <p>Cách lấy Gemini API KEY:</p>
             <p><img src="images/gemini-key-how to-get.png" alt="image" /></p>
             <hr />
