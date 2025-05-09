@@ -741,6 +741,7 @@ try:
                                     chat_history_new = []
                                     files_mapping = {}
                                     global should_not_chat
+                                    read_elements = []
                                     for msg_element in reversed(msg_table.find_elements(By.CSS_SELECTOR, 'div[role="row"]')):
                                         try:
                                             checkpointed = msg_element.get_attribute("checkpoint")
@@ -749,7 +750,7 @@ try:
                                         finally:
                                             if checkpointed == "checkpointed":
                                                 break
-                                            driver.execute_script("arguments[0].setAttribute('checkpoint', 'checkpointed')", msg_element)
+                                            read_elements.append(msg_element)
 
                                         try:
                                             timedate = msg_element.find_element(By.CSS_SELECTOR, 'span[class="x193iq5w xeuugli x13faqbe x1vvkbs x1xmvt09 x1lliihq x1s928wv xhkezso x1gmr53x x1cpjm7i x1fgarty x1943h6x x4zkp8e x676frb x1pg5gke xvq8zen xo1l8bm x12scifz"]')
@@ -881,6 +882,8 @@ try:
                                             name = "None"
                                         
                                         chat_history_new.insert(0, {"message_type" : mark, "info" : {"name" : name, "msg" : msg}, "mentioned_message" : quotes_text })
+                                    for msg_element in read_elements:
+                                        driver.execute_script("arguments[0].setAttribute('checkpoint', 'checkpointed')", msg_element)
                                     return chat_history_new, files_mapping
 
                                 try: # Emulate typing...
@@ -889,7 +892,6 @@ try:
                                 except Exception:
                                     pass
                                 chat_history_new, files_mapping = process_elements(msg_table)
-
                                 print_with_time("Đã đọc xong!")
 
                                 def reset_chat(msg = None):
