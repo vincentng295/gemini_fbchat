@@ -457,3 +457,13 @@ def add_block_fb_images(driver):
             "*://static.xx.fbcdn.net/images/*"
         ]
     })
+
+def set_structure(data, path):
+    struct_dict = { "root" : data }
+    current = struct_dict
+    path.insert(0, "root")
+    for key in path:
+        if not isinstance(current.get(key, None), dict):
+            current[key] = {}  # Only create if not a dict
+        current = current[key]
+    return struct_dict["root"]

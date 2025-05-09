@@ -329,8 +329,11 @@ try:
     __old_status = chat_histories.pop("status", {})
     if __old_status:
         for key, val in __old_status.items():
+            set_structure(chat_infos, [key])
             chat_infos[key] = { "chatable" : val }
     del __old_status
+    set_structure(chat_infos, [admin_fbid, "admin_settings"])
+    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat", True)
 
     ######################################
     print_with_time("Bắt đầu khởi động!")
@@ -608,7 +611,8 @@ try:
                         print_with_time(f"Tin nhắn mới từ {who_chatted} (ID: {facebook_id})")
                         if "debug" in work_jobs:
                             print_with_time(json.dumps(facebook_info, ensure_ascii=False, indent=2))
-                        chat_infos.setdefault(message_id, {})["name"] = who_chatted
+                        set_structure(chat_infos, [message_id])
+                        chat_infos[message_id]["name"] = who_chatted
 
                         while True:
                             try:
