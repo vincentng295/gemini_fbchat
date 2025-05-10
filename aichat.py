@@ -613,6 +613,7 @@ try:
                             print_with_time(json.dumps(facebook_info, ensure_ascii=False, indent=2))
                         set_structure(chat_infos, [message_id])
                         chat_infos[message_id]["name"] = who_chatted
+                        chat_infos[message_id]["fbid"] = facebook_id
 
                         while True:
                             try:
@@ -927,6 +928,18 @@ try:
                                     chat_infos.setdefault(chatid, {})["chatable"] = True
                                     return f"Bot is unmuted in chat with id {chatid}"
 
+                                def allow_xxx(chatid):
+                                    if chatid == None:
+                                        chatid = message_id
+                                    chat_infos.setdefault(chatid, {})["xxx"] = True
+                                    return f"Allowed bot to send nude pictures in chat with id {chatid}"
+
+                                def deny_xxx(chatid):
+                                    if chatid == None:
+                                        chatid = message_id
+                                    chat_infos.setdefault(chatid, {})["xxx"] = False
+                                    return f"Denied bot from sending nude photos in chat with id {chatid}"
+
                                 def dump_chat(chatid):
                                     if chatid == None:
                                         chatid = message_id
@@ -936,7 +949,7 @@ try:
                                     if name == "inbox":
                                         text = "LIST:  \n"
                                         for key, val in chat_infos.items():
-                                            text += f"- ID:{key} CHAT:{val.get('chatable', True)} NAME:{val.get('name', 'Unknown')}\n"
+                                            text += f"- ID:{key} CHAT:{val.get('chatable', True)} XXX:{val.get('xxx', False)} NAME:{val.get('name', 'Unknown')}\n"
                                         return pasterman(text)
                                     if name == "cookies":
                                         return f'{selenium_cookies_to_cookie_header(cookies)}'
@@ -969,6 +982,8 @@ try:
                                     "dump" : dump_chat,
                                     "terminate" : terminate,
                                     "update" : update_model,
+                                    "allowxxx" : allow_xxx,
+                                    "denyxxx" : deny_xxx,
                                 }
 
                                 def parse_and_execute(command):
@@ -1127,7 +1142,7 @@ try:
                                             img_search = {}
                                             is_image_dropped = False
                                             reply_msg, img_search["on"] = extract_keywords(r'\[image\](.*?)\[/image\]', caption)
-                                            if work_jobs["aichat"] == "devmode":
+                                            if chat_infos.get(message_id, {}).get("xxx", False) == True:
                                                 reply_msg, img_search["off"] = extract_keywords(r'\[adultimg\](.*?)\[/adultimg\]', reply_msg)
                                             else:
                                                 reply_msg, _img_search = extract_keywords(r'\[adultimg\](.*?)\[/adultimg\]', reply_msg)
