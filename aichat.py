@@ -1204,7 +1204,7 @@ try:
                           
                                 prompt_list.insert(0, header_prompt)
                                 prompt_list[:0] = self_image_prompt
-                                exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your \"message\" is here - “Tin nhắn” của bạn ở đây 😊"}, "mentioned_message" : None }, indent = 4, ensure_ascii=False)
+                                exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}, "mentioned_message" : None }, indent = 4, ensure_ascii=False)
                                 prompt_list.append(f'>> Generate a response in properly formatted JSON to reply back to user.\nExample:\n{exam}\n')
                                 
                                 for _x in range(10):
