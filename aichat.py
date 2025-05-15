@@ -492,6 +492,9 @@ try:
                         
                         if len(new_chat_indicator) <= 0 and ("aichat_no_welcome" in work_jobs or chat_histories.get(message_id, None)):
                             continue
+                        if chat_infos[admin_fbid]["admin_settings"].get("aichat", True) == False and chat_infos[message_id].get("fbid", message_id) != admin_fbid:
+                            #print_with_time(f"Đã bỏ qua: {message_id}")
+                            continue
                         chat_list.append(chat_info)
                     except Exception:
                         continue
@@ -1008,12 +1011,22 @@ try:
                                         return pasterman(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
                                     if name == "rules":
                                         return f'Rules: {chat_infos[admin_fbid]["admin_settings"].setdefault("opts", "")}'
+                                    if name == "status":
+                                        return f"AICHAT: {chat_infos[admin_fbid]['admin_settings'].get('aichat')}"
                                     return f"Invalid argument: {name}"
 
                                 def terminate(_0 = None, _1 = None):
                                     global should_stop
                                     should_stop = True
                                     return "Good bye!"
+
+                                def do_stop(_0 = None, _1 = None):
+                                    chat_infos[admin_fbid]["admin_settings"]["aichat"] = False
+                                    return "AI Chat has been stopped!"
+
+                                def do_start(_0 = None, _1 = None):
+                                    chat_infos[admin_fbid]["admin_settings"]["aichat"] = True
+                                    return "AI Chat has been started!"
 
                                 def update_model(_0 = None, _1 = None):
                                     global model
@@ -1043,6 +1056,8 @@ try:
                                     "checkib" : checkib,
                                     "send" : checkib, #checkib and send are same
                                     "setrules" : set_rules,
+                                    "stop" : do_stop,
+                                    "start" : do_start,
                                 }
                                 
                                 func_noadmin = {
