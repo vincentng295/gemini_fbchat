@@ -622,6 +622,7 @@ try:
                         set_structure(chat_infos, [message_id])
                         chat_infos[message_id]["name"] = who_chatted
                         chat_infos[message_id]["fbid"] = facebook_id
+                        caption = chat_info.pop("caption", None)
 
                         while True:
                             try:
@@ -904,8 +905,10 @@ try:
                                     pass
                                 chat_history_new, files_mapping = process_elements(msg_table)
                                 print_with_time("Đã đọc xong!")
+                                
+                                id_invalid_err = "ID must be numeric"
 
-                                def reset_chat(msg = None):
+                                def reset_chat(msg = None, _1 = None):
                                     global reset
                                     reset = True
                                     if msg == None:
@@ -913,7 +916,7 @@ try:
                                     chat_histories[msg] = [{"message_type" : "new_chat", "info" : "New chat"}]
                                     return f'Bot has been reset'
 
-                                def mute_chat(mode):
+                                def mute_chat(mode, _1 = None):
                                     global should_not_chat
                                     if mode == "true" or mode == "1":
                                         chat_infos.setdefault(message_id, {})["chatable"] = False
@@ -926,55 +929,68 @@ try:
                                         return f'Bot has been unmuted'
                                     return f'Unknown mute mode! Use "1" to mute the bot or "0" to unmute the bot.'
 
-                                def mute_by_id(chatid):
+                                def mute_by_id(chatid, _1 = None):
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return f"ID must be numeric"
+                                        return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["chatable"] = False
                                     return f"Bot is muted in chat with id {chatid}"
 
-                                def unmute_by_id(chatid):
+                                def unmute_by_id(chatid, _1 = None):
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return f"ID must be numeric"
+                                        return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["chatable"] = True
                                     return f"Bot is unmuted in chat with id {chatid}"
 
-                                def allow_xxx(chatid):
+                                def allow_xxx(chatidm, _1 = None):
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return f"ID must be numeric"
+                                        return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["xxx"] = True
                                     return f"Allowed bot to send nude pictures in chat with id {chatid}"
 
-                                def deny_xxx(chatid):
+                                def deny_xxx(chatid, _1 = None):
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return f"ID must be numeric"
+                                        return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["xxx"] = False
                                     return f"Denied bot from sending nude photos in chat with id {chatid}"
 
-                                def dump_chat(chatid):
+                                def dump_chat(chatid, _1 = None):
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return f"ID must be numeric"
+                                        return id_invalid_err
                                     return pasterman(json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2))
 
-                                def checkib(chatid):
-                                    if chatid == None:
+                                def checkib(chatids, msg=None):
+                                    results = []
+                                    for chatid in chatids.split(","):
+                                        chatid = chatid.strip()
+                                        result = checkib_single(chatid, msg)
+                                        results.append(result)
+                                    return "\n".join(results)
+
+                                # Rename the original checkib to checkib_single to avoid naming conflict
+                                def checkib_single(chatid, msg=None):
+                                    if chatid is None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return f"ID must be numeric"
-                                    chat_info = { "id" : chatid, "href" : f"/messages/t/{chatid}" }
+                                        return f"Invalid chat id: {chatid}"
+                                    chat_info = { "id": chatid, "href": f"/messages/t/{chatid}" }
+                                    ok = f"Added {chatid} into check list"
+                                    if msg is not None:
+                                        chat_info["caption"] = json.dumps({"info": {"msg": msg}}, indent=4, ensure_ascii=False)
+                                        ok += f" and send message: {msg}"
                                     chat_list.append(chat_info)
-                                    return f"Added {chatid} into check list"
+                                    return ok
 
-                                def get_info(name):
+                                def get_info(name, _1 = None):
                                     if name == "inbox":
                                         text = "LIST:  \n"
                                         for key, val in chat_infos.items():
@@ -994,21 +1010,24 @@ try:
                                         return f'Rules: {chat_infos[admin_fbid]["admin_settings"].setdefault("opts", "")}'
                                     return f"Invalid argument: {name}"
 
-                                def terminate(__):
+                                def terminate(_0 = None, _1 = None):
                                     global should_stop
                                     should_stop = True
                                     return "Good bye!"
 
-                                def update_model(__):
+                                def update_model(_0 = None, _1 = None):
                                     global model
                                     model = load_model()
                                     return "Update model!"
 
-                                def set_rules(rules):
+                                def set_rules(rules, _1 = None):
                                     if rules is not None:
                                         __set_rules(rules)
                                         return f"Set rules to {rules}"
                                     return "Nothing to set?"
+
+                                def getid(_0 = None, _1 = None):
+                                    return facebook_id
 
                                 # Dictionary mapping arg1 to functions
                                 func = {
@@ -1022,12 +1041,15 @@ try:
                                     "allowxxx" : allow_xxx,
                                     "denyxxx" : deny_xxx,
                                     "checkib" : checkib,
+                                    "send" : checkib, #checkib and send are same
                                     "setrules" : set_rules,
+                                }
+                                
+                                func_noadmin = {
+                                    "getid" : getid,
                                 }
 
                                 def parse_and_execute(command):
-                                    if facebook_id != admin_fbid:
-                                        return "?"
                                     # Parse the command
                                     args = shlex.split(command)
                                     
@@ -1038,21 +1060,30 @@ try:
                                     # Extract arg1 and arg2
                                     arg1 = args[1]
                                     arg2 = args[2] if len(args) > 2 else None
+                                    arg3 = args[3] if len(args) > 3 else None
                                     
                                     # Check if arg1 is in func and execute
                                     if arg1 in func:
+                                        if facebook_id != admin_fbid:
+                                            return "?"
                                         try:
-                                            return func[arg1](arg2)
+                                            return func[arg1](arg2, arg3)
+                                        except Exception as e:
+                                            return f"Error while executing function: {e}"
+                                    elif arg1 in func_noadmin:
+                                        try:
+                                            return func_noadmin[arg1](arg2, arg3)
                                         except Exception as e:
                                             return f"Error while executing function: {e}"
                                     else:
                                         return f"Unknown command: {arg1}"
 
-                                if len(chat_history_new) <= 0:
-                                    break
-                                last_msg = chat_history_new[-1]
-                                if last_msg["message_type"] == "your_text_message":
-                                    break
+                                if caption is None:
+                                    if len(chat_history_new) <= 0:
+                                        break
+                                    last_msg = chat_history_new[-1]
+                                    if last_msg["message_type"] == "your_text_message":
+                                        break
 
                                 for msg in chat_history_new:
                                     if msg["message_type"] == "text_message":
@@ -1084,14 +1115,15 @@ try:
                                     time.sleep(10)
                                     raise KeyboardInterrupt
                                 is_command_msg = last_msg["message_type"] == "text_message" and is_cmd(last_msg["info"]["msg"])
-                                if is_command_msg:
-                                    break
-                                if reset:
-                                    break
-                                if should_not_chat:
-                                    break
-                                if not genai_key:
-                                    break
+                                if caption is None:
+                                    if is_command_msg:
+                                        break
+                                    if reset:
+                                        break
+                                    if should_not_chat:
+                                        break
+                                    if not genai_key:
+                                        break
                                 try: # Emulate typing...
                                     actions.move_to_element(get_message_input()).click().send_keys(" ").perform()
                                 except Exception:
@@ -1128,14 +1160,14 @@ try:
                                         response = summary_model.generate_content(prompt_to_summary)
                                         release_unload_files(chat_history[:summary_lines], True)
                                         if not response.candidates:
-                                            caption = "Old chat conversation is deleted"
+                                            summary = "Old chat conversation is deleted"
                                         else:
-                                            caption = response.text
+                                            summary = response.text
                                     except Exception as e:
                                         print_with_time(e)
-                                        caption = "Old chat conversation is deleted"
+                                        summary = "Old chat conversation is deleted"
                                     chat_history = chat_history[-left_lines:]
-                                    chat_history.insert(0, {"message_type" : "summary_old_chat", "info" : caption})
+                                    chat_history.insert(0, {"message_type" : "summary_old_chat", "info" : summary})
 
                                 chat_history.extend(chat_history_new)
 
@@ -1161,7 +1193,6 @@ try:
                                 exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your \"message\" is here - “Tin nhắn” của bạn ở đây 😊"}, "mentioned_message" : None }, indent = 4, ensure_ascii=False)
                                 prompt_list.append(f'>> Generate a response in properly formatted JSON to reply back to user.\nExample:\n{exam}\n')
                                 
-                                caption = None
                                 for _x in range(10):
                                     try:
                                         button = get_message_input()
