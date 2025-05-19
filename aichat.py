@@ -911,13 +911,20 @@ try:
                                 
                                 id_invalid_err = "ID must be numeric"
 
-                                def reset_chat(msg = None, _1 = None):
+                                def reset_chat(msg = None, title = None):
                                     global reset
                                     reset = True
                                     if msg == None:
                                         msg = message_id
-                                    chat_histories[msg] = [{"message_type" : "new_chat", "info" : "New chat"}]
-                                    return f'Bot has been reset'
+                                    if title == None:
+                                        title = "New chat"
+                                    chat_histories[msg] = [{"message_type" : "new_chat", "info" : title}]
+                                    return f'Bot has been reset in chat with id {msg}'
+
+                                def resetall(title = None, _1 = None):
+                                    for key in chat_histories:
+                                        reset_chat(key, title)
+                                    return "Bot has been reset"
 
                                 def mute_chat(mode, _1 = None):
                                     global should_not_chat
@@ -1058,6 +1065,7 @@ try:
                                     "setrules" : set_rules,
                                     "stop" : do_stop,
                                     "start" : do_start,
+                                    "resetall": resetall,
                                 }
                                 
                                 func_noadmin = {
