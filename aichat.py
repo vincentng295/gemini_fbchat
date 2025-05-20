@@ -755,6 +755,7 @@ try:
                                     files_mapping = {}
                                     global should_not_chat
                                     read_elements = []
+                                    reading_time = get_day_and_time()
                                     for msg_element in reversed(msg_table.find_elements(By.CSS_SELECTOR, 'div[role="row"]')):
                                         try:
                                             checkpointed = msg_element.get_attribute("checkpoint")
@@ -770,11 +771,6 @@ try:
                                             chat_history_new.insert(0, {"message_type" : "conversation_event", "info" : timedate.text})
                                         except Exception:
                                             pass
-
-                                        try:
-                                            quotes_text = msg_element.find_element(By.CSS_SELECTOR, 'div[class="xi81zsa x126k92a"]').text
-                                        except Exception:
-                                            quotes_text = None
 
                                         # Finding name
                                         try: 
@@ -794,6 +790,13 @@ try:
                                                     name = None
                                         # Scrape message
                                         msg = None
+
+                                        try:
+                                            quotes_text = msg_element.find_element(By.CSS_SELECTOR, 'div.xi81zsa.x126k92a').text
+                                            chat_history_new.insert(0, {"message_type" : "replied_to_message", "info" : {"name" : name, "mentioned_message" : quotes_text}, "reading_time" : reading_time})
+                                        except Exception:
+                                            pass
+
                                         try:
                                             msg_frame = msg_element.find_element(By.CSS_SELECTOR, 'div[dir="auto"][class^="html-div "]')
                                             msg = msg_frame.text
@@ -828,7 +831,7 @@ try:
                                                 else:
                                                     files_mapping[image_name] = ("url", data_uri)
                                                
-                                                chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send image", "file_name" : image_name, "mime_type" : "image/jpeg" , "url" : None, "loaded" : True }, "mentioned_message" : quotes_text})
+                                                chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send image", "file_name" : image_name, "mime_type" : "image/jpeg" , "url" : None, "loaded" : True }, "reading_time" : reading_time})
                                             except Exception:
                                                 pass
 
@@ -838,7 +841,7 @@ try:
                                             video_name = f"files/{generate_random_string(40)}"
                                             files_mapping[video_name] = ("url", video_url)
 
-                                            chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send video", "file_name" : video_name, "mime_type" : "video/mp4", "url" : None, "loaded" : False }, "mentioned_message" : quotes_text})
+                                            chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send video", "file_name" : video_name, "mime_type" : "video/mp4", "url" : None, "loaded" : False }, "reading_time" : reading_time})
                                         except Exception:
                                             pass
 
@@ -851,7 +854,7 @@ try:
                                             audio_name = f"files/{generate_random_string(40)}"
                                             files_mapping[audio_name] = ("url", audio_url)
 
-                                            chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send audio", "file_name" : audio_name, "mime_type" : "audio/mp4", "url" : None, "loaded" : True }, "mentioned_message" : quotes_text})
+                                            chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send audio", "file_name" : audio_name, "mime_type" : "audio/mp4", "url" : None, "loaded" : True }, "reading_time" : reading_time})
                                         except Exception:
                                             pass
 
@@ -867,7 +870,7 @@ try:
                                             if check_supported_file(mime_type):
                                                 file_name = f"files/{generate_random_string(40)}"
                                                 files_mapping[file_name] = ("url", file_url)
-                                                chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type, "url" : None, "loaded" : False }, "mentioned_message" : quotes_text})
+                                                chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type, "url" : None, "loaded" : False }, "reading_time" : reading_time})
                                             continue
                                         except Exception:
                                             pass
@@ -894,7 +897,7 @@ try:
                                         if name == None:
                                             name = "None"
                                         
-                                        chat_history_new.insert(0, {"message_type" : mark, "info" : {"name" : name, "msg" : msg}, "mentioned_message" : quotes_text })
+                                        chat_history_new.insert(0, {"message_type" : mark, "info" : {"name" : name, "msg" : msg}, "reading_time" : reading_time})
                                     for msg_element in read_elements:
                                         driver.execute_script("arguments[0].setAttribute('checkpoint', 'checkpointed')", msg_element)
                                     return chat_history_new, files_mapping
@@ -1212,7 +1215,7 @@ try:
                           
                                 prompt_list.insert(0, header_prompt)
                                 prompt_list[:0] = self_image_prompt
-                                exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}, "mentioned_message" : None }, indent = 4, ensure_ascii=False)
+                                exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}}, indent = 4, ensure_ascii=False)
                                 prompt_list.append(f'>> Generate a response in properly formatted JSON to reply back to user.\nExample:\n{exam}\n')
                                 
                                 for _x in range(10):
@@ -1312,7 +1315,7 @@ try:
                                                     if bye_msg:
                                                         get_message_input().send_keys(remove_non_bmp_characters(bye_msg) + "\n")
                                             chat_history.extend(chat_history_new)
-                                            chat_history.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : reply_msg}, "mentioned_message" : None })
+                                            chat_history.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : reply_msg}, "sending_time" : get_day_and_time() })
                                             chat_histories[message_id] = chat_history
                                             for file_name, file_info in files_mapping.items():
                                                 info_type = file_info[0]
