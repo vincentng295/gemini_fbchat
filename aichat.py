@@ -20,7 +20,6 @@ from selenium.webdriver.support import expected_conditions as EC  # For expected
 from selenium.common.exceptions import *  # For handling exceptions
 from selenium.webdriver.common.keys import Keys  # For keyboard actions
 from selenium.common.exceptions import *
-import google.generativeai as genai  # For generative AI functionalities
 from pickle_utils import *  # For pickling data
 from github_utils import *  # For GitHub file operations
 from fbparser import get_facebook_profile_url, get_facebook_id, get_facebook_name
@@ -32,7 +31,10 @@ from shorturl import start_shorturl_thread, register_shorturl, get_local_file_ur
 from PIL import Image
 import threading
 from pasterman import pasterman
-
+from google import genai
+from google.genai import types # Needed for multimodal content like images
+from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState
+import traceback
 import re
 
 def is_only_whitespace_or_nonbmp(s):
@@ -64,6 +66,7 @@ if not genai_key:
             print("Đã đọc key từ file") 
             genai_key = f.read()
     except Exception: pass
+client = genai.Client(api_key=genai_key)
 
 scoped_dir = os.getenv("SCPDIR")
 
@@ -261,40 +264,67 @@ try:
     self_facebook_info["Facebook photos"] = photos
     myname = self_facebook_info["Facebook name"]
     gemini_dev_mode = work_jobs.get("aichat", "normal") == "devmode"
-    genai.configure(api_key=genai_key)
 
-    ai_prompt = ""
+    main_model_config = None
+    safety_settings = [ # This must be a list of SafetySetting objects
+                SafetySetting(
+                    category=HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold=HarmBlockThreshold.BLOCK_NONE,
+                ),
+                SafetySetting(
+                    category=HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold=HarmBlockThreshold.BLOCK_NONE,
+                ),
+                SafetySetting(
+                    category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold=HarmBlockThreshold.BLOCK_NONE,
+                ),
+                SafetySetting(
+                    category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold=HarmBlockThreshold.BLOCK_NONE,
+                )
+            ]
 
-    def load_model():
-        global ai_prompt
+    def load_instruction():
+        global main_model_config
         if on_github_workflows:
             get_file(GITHUB_TOKEN, GITHUB_REPO, f_intro_txt, STORAGE_BRANCE, f_intro_txt)
         with open(f_intro_txt, "r", encoding='utf-8') as f: # What kind of person will AI simulate?
             ai_prompt = f.read()
         # Setup overall guidance to the model
         instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
-        return genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=instruction,  # Your overall guidance to the model
-            safety_settings={
-                'harm_category_harassment': 'BLOCK_NONE',
-                'harm_category_hate_speech': 'BLOCK_NONE',
-                'harm_category_sexually_explicit': 'BLOCK_NONE',
-                'harm_category_dangerous_content': 'BLOCK_NONE',
-            }
+        main_model_config = {
+            "model_name": "gemini-2.0-flash",
+            "system_instruction": instruction
+        }
+
+    load_instruction()
+
+    summary_model_config = {
+        "model_name": "gemini-2.0-flash",
+        "system_instruction": [ get_devmode_prompt(), "You are a summary model. When I give a prompt, your output must be a summary of the chat conversation, including all previous summaries and important context. Do not include quoted sentences, markdown, or formatting. The summary should be in English, direct, and retain essential details for future reference." ]
+    }
+
+    def reply_generate_content(parts):
+        return client.models.generate_content(
+            model=main_model_config["model_name"],
+            contents=parts,
+            config = GenerateContentConfig(
+                system_instruction=main_model_config["system_instruction"],
+                safety_settings=safety_settings,
+                response_mime_type="application/json"
+            )
         )
 
-    model = load_model()
-    summary_model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
-        system_instruction = [ get_devmode_prompt(), "You are a summary model. When I give a prompt, your output must be a summary of the chat conversation, including all previous summaries and important context. Do not include quoted sentences, markdown, or formatting. The summary should be in English, direct, and retain essential details for future reference." ],  # Your overall guidance to the model
-        safety_settings={
-            'harm_category_harassment': 'BLOCK_NONE',
-            'harm_category_hate_speech': 'BLOCK_NONE',
-            'harm_category_sexually_explicit': 'BLOCK_NONE',
-            'harm_category_dangerous_content': 'BLOCK_NONE',
-        }
-    )
+    def summary_generate_content(parts):
+        return client.models.generate_content(
+            model=summary_model_config["model_name"],
+            contents=parts,
+            config = GenerateContentConfig(
+                system_instruction=summary_model_config["system_instruction"],
+                safety_settings=safety_settings,
+            )
+        )
 
     # Facebook info
     f_facebook_infos = "facebook_infos.bin"
@@ -653,24 +683,26 @@ try:
                                             file_upload = None
                                             try:
                                                 # find the cached files first
-                                                file_upload = genai.get_file(file_name)
+                                                file_upload = client.files.get(name=file_name)
                                             except Exception:
+                                                #traceback.print_exc()
                                                 try:
                                                     if msg["info"].get("url", None) is not None:
                                                         # generate new file name if possible to avoid any conflict
                                                         file_name = f"files/{generate_random_string(40)}"
                                                         msg["info"]["file_name"] = file_name
                                                         get_raw_file(msg["info"]["url"], file_name)
-                                                    file_upload = genai.upload_file(path = file_name, mime_type = mime_type, name = file_name)
+                                                    file_upload = client.files.upload(file = file_name, config = UploadFileConfig(mime_type=mime_type,name=file_name))
                                                 except Exception as e:
                                                     file_result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
                                                     print_with_time(e)
+                                                    #traceback.print_exc()
                                             if file_upload is not None:
-                                                if file_upload.state == 2:
-                                                    if msg["info"].get("last_state", None) != 2:
+                                                if file_upload.state == FileState.ACTIVE:
+                                                    if msg["info"].get("last_state", None) != FileState.ACTIVE:
                                                         file_result.append(f"{file_name} is ready for you to view it!")
                                                     file_result.append(file_upload)
-                                                elif file_upload.state == 10:
+                                                elif file_upload.state == FileState.FAILED:
                                                     file_result.append(f"{file_name} cannot be loaded. You might ask user to resend the file")
                                                 else:
                                                     file_result.append(f"{file_name} is being sent to you. Please wait a moment!")
@@ -687,9 +719,7 @@ try:
                                         if msg["message_type"] == "file" and (do_all or msg["info"].get("loaded", False) == False):
                                             try:
                                                 file_name = msg["info"]["file_name"]
-                                                # find the cached files first
-                                                file_upload = genai.get_file(file_name)
-                                                genai.delete_file(file_upload)
+                                                client.files.delete(name=file_name)
                                             except Exception:
                                                 pass
                                     
@@ -1039,8 +1069,7 @@ try:
                                     return "AI Chat has been started!"
 
                                 def update_model(_0 = None, _1 = None):
-                                    global model
-                                    model = load_model()
+                                    load_instruction()
                                     return "Update model!"
 
                                 def set_rules(rules, _1 = None):
@@ -1182,7 +1211,7 @@ try:
                                                     __num_file += 1  # Increment first
                                                     msg["info"]["loaded"] = __num_file <= max_file  # Compare after incrementing
                                         prompt_to_summary = process_chat_history(chat_history[:summary_lines])
-                                        response = summary_model.generate_content(prompt_to_summary)
+                                        response = summary_generate_content(prompt_to_summary)
                                         release_unload_files(chat_history[:summary_lines], True)
                                         if not response.candidates:
                                             summary = "Old chat conversation is deleted"
@@ -1225,9 +1254,7 @@ try:
                                         get_message_input().send_keys(Keys.CONTROL + "a")  # Select all text
                                         get_message_input().send_keys(Keys.DELETE)  # Delete the selected text
                                         if caption is None:
-                                            response = model.generate_content(prompt_list, generation_config=genai.GenerationConfig(
-                                                response_mime_type="application/json"
-                                            ),)
+                                            response = reply_generate_content(prompt_list)
                                             if not response.candidates:
                                                 chat_history = [{"message_type" : "summary_old_chat", "info" : "The previous conversation has been deleted"}]
                                                 caption = json.dumps({"info" : {"msg" : "Sorry!"}}, indent = 4, ensure_ascii=False)
