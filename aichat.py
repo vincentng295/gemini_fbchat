@@ -1269,7 +1269,14 @@ try:
                                         if caption is not None:
                                             img_search = {}
                                             is_image_dropped = False
-                                            reply_msg, img_search["on"] = extract_keywords(r'\[image\](.*?)\[/image\]', caption)
+                                            json_msg = fix_json(caption)
+                                            try:
+                                                original_msg = json_msg["info"]["msg"]
+                                                reply_msg = original_msg
+                                            except Exception:
+                                                caption = None
+                                                raise JSON5DecodeError("Error getting message") # Ask Gemini to re-generate JSON
+                                            reply_msg, img_search["on"] = extract_keywords(r'\[image\](.*?)\[/image\]', reply_msg)
                                             if chat_infos.get(message_id, {}).get("xxx", False) == True:
                                                 reply_msg, img_search["off"] = extract_keywords(r'\[adultimg\](.*?)\[/adultimg\]', reply_msg)
                                             else:
@@ -1280,12 +1287,6 @@ try:
                                             reply_msg, itunes_keywords = extract_keywords(r'\[itunes\](.*?)\[/itunes\]', reply_msg)
                                             reply_msg, bot_commands = extract_keywords(r'\[cmd\](.*?)\[/cmd\]', reply_msg)
                                             
-                                            json_msg = fix_json(reply_msg)
-                                            try:
-                                                reply_msg = json_msg["info"]["msg"]
-                                            except Exception:
-                                                caption = None
-                                                raise JSON5DecodeError("Error getting message") # Ask Gemini to re-generate JSON
 
                                             for adult, img_keywords in img_search.items():
                                                 for img_keyword in img_keywords:
@@ -1359,7 +1360,7 @@ try:
                                                     if bye_msg:
                                                         get_message_input().send_keys(remove_non_bmp_characters(bye_msg) + "\n")
                                             chat_history.extend(chat_history_new)
-                                            chat_history.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : reply_msg}, "sending_time" : get_day_and_time() })
+                                            chat_history.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : original_msg}, "sending_time" : get_day_and_time() })
                                             chat_histories[message_id] = chat_history
                                             for file_name, file_info in files_mapping.items():
                                                 info_type = file_info[0]
