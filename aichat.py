@@ -36,6 +36,7 @@ from google.genai import types # Needed for multimodal content like images
 from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState, GoogleSearch, Tool
 import traceback
 import re
+from gemini_generate_image import generate_image
 
 def is_only_whitespace_or_nonbmp(s):
     return all(
@@ -1275,6 +1276,7 @@ try:
                                                 reply_msg, _img_search = extract_keywords(r'\[adultimg\](.*?)\[/adultimg\]', reply_msg)
                                                 img_search["on"].extend(_img_search)
                                             reply_msg, img_search["link"] = extract_keywords(r'\[imglink\](.*?)\[/imglink\]', reply_msg)
+                                            reply_msg, gen_imgs = extract_keywords(r'\[genimg\](.*?)\[/genimg\]', reply_msg)
                                             reply_msg, itunes_keywords = extract_keywords(r'\[itunes\](.*?)\[/itunes\]', reply_msg)
                                             reply_msg, bot_commands = extract_keywords(r'\[cmd\](.*?)\[/cmd\]', reply_msg)
                                             
@@ -1301,6 +1303,16 @@ try:
                                                             break
                                                     except Exception:
                                                         print_with_time(f"Không thể gửi ảnh: {img_keyword}")
+                                            for gen_img in gen_imgs:
+                                                try:
+                                                    images, _, _ = generate_image(client, gen_img)
+                                                    for image_io in images:
+                                                        if "debug" in global_set["rules"]:
+                                                            print_with_time(f"AI gửi ảnh {gen_img} từ Gemini tạo ảnh")
+                                                        drop_image(driver, button, image_io)
+                                                        is_image_dropped = True
+                                                except Exception:
+                                                    print_with_time(f"Không thể gửi ảnh: {img_keyword}")
                                             if is_image_dropped:
                                                 get_message_input().send_keys("\n") # Press Enter to send image
                                             is_image_dropped = False
