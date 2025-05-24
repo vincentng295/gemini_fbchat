@@ -518,6 +518,7 @@ try:
                 chat_list = []
                 # find all chat buttons
                 chat_btns = driver.find_elements(By.CSS_SELECTOR, 'a[href^="/messages/"]')
+                current_unix = int(time.time())
                 for chat_btn in chat_btns:
                     try:
                         new_chat_indicator = chat_btn.find_elements(By.CSS_SELECTOR, 'span.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x9f619.x3nfvp2.xl56j7k.x1spa7qu.x1kpxq89.xsmyaan')
@@ -526,7 +527,9 @@ try:
                         message_id = get_last_part(href)
                         chat_info = { "id" : message_id, "href" : href }
                         
-                        if len(new_chat_indicator) <= 0 and ("aichat_no_welcome" in work_jobs or chat_histories.get(message_id, None)):
+                        delay_rep_time = chat_infos[message_id].get("delaytime", None) is not None and (current_unix >= chat_infos[message_id].get("delaytime", current_unix))
+                        
+                        if not delay_rep_time and len(new_chat_indicator) <= 0 and ("aichat_no_welcome" in work_jobs or chat_histories.get(message_id, None)):
                             continue
                         if chat_infos[admin_fbid]["admin_settings"].get("aichat", True) == False and chat_infos[message_id].get("fbid", message_id) != admin_fbid:
                             #print_with_time(f"Đã bỏ qua: {message_id}")
@@ -661,6 +664,7 @@ try:
                         set_structure(chat_infos, [message_id])
                         chat_infos[message_id]["name"] = who_chatted
                         chat_infos[message_id]["fbid"] = facebook_id
+                        delay_is_set = chat_infos[message_id].pop("delaytime", None) is not None
                         caption = chat_info.pop("caption", None)
 
                         while True:
@@ -1176,6 +1180,7 @@ try:
                                     time.sleep(10)
                                     raise KeyboardInterrupt
                                 is_command_msg = last_msg["message_type"] == "text_message" and is_cmd(last_msg["info"]["msg"])
+                                is_file = last_msg["message_type"] == "file"
                                 if caption is None:
                                     if is_command_msg:
                                         break
@@ -1184,6 +1189,10 @@ try:
                                     if should_not_chat:
                                         break
                                     if not genai_key:
+                                        break
+                                    if is_file and not delay_is_set:
+                                        # Wait user to send text message in 30s before process
+                                        chat_infos[message_id]["delaytime"] = int(time.time()) + 30
                                         break
                                 try: # Emulate typing...
                                     actions.move_to_element(get_message_input()).click().send_keys(" ").perform()
