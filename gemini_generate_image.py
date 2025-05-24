@@ -66,3 +66,20 @@ def generate_image(client, prompt):
             feedback = response.prompt_feedback
     return images, texts, feedback
 
+"""
+from google import genai
+from gemini_generate_image import generate_image
+from PIL import Image
+client = genai.Client(api_key=API_KEY)
+with open("hmt.jpg", "rb") as img_input:
+    image = Image.open(img_input)
+    prompt = [ image, "Change color of background to green" ]
+    images, texts, feedback = generate_image(client, prompt)
+    for txt in texts:
+        print(txt)
+    for img in images:
+        with open(img.name, "wb") as f:
+            f.write(img.getvalue())
+            print(f"Saved to {img.name}")
+    if feedback: print(feedback)
+"""

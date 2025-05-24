@@ -1305,8 +1305,19 @@ try:
                                                     except Exception:
                                                         print_with_time(f"Không thể gửi ảnh: {img_keyword}")
                                             for gen_img in gen_imgs:
+                                                gen_img_items = gen_img.split('|')
+                                                gen_img = gen_img_items.pop()
+                                                gen_img_prompt = [gen_img]
+                                                for link in gen_img_items:
+                                                    try:
+                                                        image_io = download_file_to_bytesio(link)
+                                                        image = Image.open(image_io)
+                                                        gen_img_prompt.insert(0, image)
+                                                    except Exception as e:
+                                                        #print_with_time(f"Lỗi: {e}")
+                                                        continue
                                                 try:
-                                                    images, _, _ = generate_image(client, gen_img)
+                                                    images, _, _ = generate_image(client, gen_img_prompt)
                                                     for image_io in images:
                                                         if "debug" in global_set["rules"]:
                                                             print_with_time(f"AI gửi ảnh {gen_img} từ Gemini tạo ảnh")
