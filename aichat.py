@@ -33,7 +33,7 @@ import threading
 from pasterman import pasterman
 from google import genai
 from google.genai import types # Needed for multimodal content like images
-from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState
+from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState, GoogleSearch, Tool
 import traceback
 import re
 
@@ -54,6 +54,7 @@ def print_with_time(*args, sep=" ", end="\n", file=None, flush=False):
 
 sys.stdout.reconfigure(encoding='utf-8')
 
+# GEMINI
 genai_key = os.getenv("GENKEY")
 if genai_key:
     try:
@@ -67,6 +68,9 @@ if not genai_key:
             genai_key = f.read()
     except Exception: pass
 client = genai.Client(api_key=genai_key)
+google_search_tool = Tool(
+    google_search = GoogleSearch()
+)
 
 scoped_dir = os.getenv("SCPDIR")
 
@@ -312,7 +316,8 @@ try:
             config = GenerateContentConfig(
                 system_instruction=main_model_config["system_instruction"],
                 safety_settings=safety_settings,
-                response_mime_type="application/json"
+                response_mime_type="application/json",
+                tools=[google_search_tool],
             )
         )
 
@@ -1245,7 +1250,7 @@ try:
                                 prompt_list.insert(0, header_prompt)
                                 prompt_list[:0] = self_image_prompt
                                 exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}}, indent = 4, ensure_ascii=False)
-                                prompt_list.append(f'>> Generate a response in properly formatted JSON to reply back to user.\nExample:\n{exam}\n')
+                                prompt_list.append(f'>> Generate a response in properly formatted JSON to reply back to user. ABSOLUTELY NO phrases like: “Wait a minute,” “Looking for it,” “Take it easy,” “I’m looking it up,” “Let me check,” or any variation of waiting, looking, or checking. When you receive a question, you must respond immediately as if you already know the information. Do not appear to be processing or delaying. \nExample:\n{exam}\n')
                                 
                                 for _x in range(10):
                                     try:
