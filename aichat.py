@@ -426,6 +426,7 @@ try:
         }
     last_reload_ts_mapping = __init_last_reload_ts_mapping()
     ee2e_resolved = False
+    screenshot_ids_to_backup = set()
 
     def update():
         print_with_time("Cập nhật cookies lên máy chủ")
@@ -442,8 +443,6 @@ try:
         if chat_histories_prev_hash == hash_dict(chat_histories):
             return False
         print_with_time("Sao lưu bộ nhớ trò chuyện")
-        pickle_to_file(f_chat_infos + ".enc", chat_infos, encrypt_key)
-        upload_file(GITHUB_TOKEN, GITHUB_REPO, f_chat_infos + ".enc", STORAGE_BRANCE)
         chat_histories_prev_hash = hash_dict(chat_histories)
         pickle_to_file(f_facebook_infos, facebook_infos)
         upload_file(GITHUB_TOKEN, GITHUB_REPO, f_facebook_infos, STORAGE_BRANCE)
@@ -458,7 +457,17 @@ try:
                     if msg["message_type"] == "file" and msg["info"]["url"] == None:
                         # Update url of file
                         msg["info"]["url"] = f'https://raw.githubusercontent.com/{GITHUB_REPO}/{branch}/{msg["info"]["file_name"]}'
+        if os.path.exists("screenshot"):
+            branch = upload_file(GITHUB_TOKEN, GITHUB_REPO, "screenshot", generate_hidden_branch())
+            try:
+                shutil.rmtree("screenshot") # Destroy directory after upload
+            except Exception:
+                pass # Ignore all error
+            for msg_id in screenshot_ids_to_backup:
+                chat_infos.setdefault(msg_id, {})["screenshot"] = f'https://raw.githubusercontent.com/{GITHUB_REPO}/{branch}/screenshot/{msg_id}.png'
         # Backup chat_histories
+        pickle_to_file(f_chat_infos + ".enc", chat_infos, encrypt_key)
+        upload_file(GITHUB_TOKEN, GITHUB_REPO, f_chat_infos + ".enc", STORAGE_BRANCE)
         pickle_to_file(f_chat_history + ".enc", chat_histories, encrypt_key)
         upload_file(GITHUB_TOKEN, GITHUB_REPO, f_chat_history + ".enc", STORAGE_BRANCE)
         return True
@@ -995,6 +1004,7 @@ try:
                                 try: # save the screenshot
                                     os.makedirs("screenshot", exist_ok=True)
                                     main.screenshot(f"screenshot/{message_id}.png")
+                                    screenshot_ids_to_backup.add(message_id)
                                 except Exception:
                                     print_with_time("! Không thể lưu ảnh chụp màn hình")
                                 
@@ -1163,6 +1173,10 @@ try:
                                     screenshot_path = f"screenshot/{chatid}.png"
                                     if os.path.exists(screenshot_path):
                                         return upload_to_catbox(screenshot_path)
+                                    info = chat_infos.get(chatid, {})
+                                    backup = info.get("screenshot", None)
+                                    if info.get("screenshot", None) is not None:
+                                        return backup
                                     return (
                                         f"No screenshot for {chatid}. "
                                         "Try check the inbox first by:\n"
