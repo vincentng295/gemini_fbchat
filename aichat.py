@@ -38,6 +38,7 @@ import traceback
 import re
 from gemini_generate_image import generate_image
 from google.genai.errors import ClientError
+from image_upload import upload_to_catbox
 
 MESSENGER_HOME_PAGE = "/messages/t/_"
 
@@ -145,7 +146,6 @@ try:
 
     tz_params = {'timezoneId': 'Asia/Ho_Chi_Minh'}
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
-    add_block_fb_images(driver)
     chat_tab = driver.current_window_handle
 
     driver.switch_to.new_window('tab')
@@ -992,6 +992,11 @@ try:
                                     pass
                                 chat_history_new, files_mapping = process_elements(msg_table)
                                 print_with_time("Đã đọc xong!")
+                                try: # save the screenshot
+                                    os.makedirs("screenshot", exist_ok=True)
+                                    main.screenshot(f"screenshot/{message_id}.png")
+                                except Exception:
+                                    print_with_time("! Không thể lưu ảnh chụp màn hình")
                                 
                                 id_invalid_err = "ID must be numeric"
 
@@ -1150,6 +1155,21 @@ try:
                                 def getid(_0 = None, _1 = None):
                                     return facebook_id
 
+                                def get_screenshot(chatid, _1 = None):
+                                    if chatid == None:
+                                        chatid = message_id
+                                    if not chatid.isnumeric():
+                                        return id_invalid_err
+                                    screenshot_path = f"screenshot/{chatid}.png"
+                                    if os.path.exists(screenshot_path):
+                                        return upload_to_catbox(screenshot_path)
+                                    return (
+                                        f"No screenshot for {chatid}. "
+                                        "Try check the inbox first by:\n"
+                                            f"/cmd checkib {chatid}"
+                                    )
+                                    
+
                                 # Dictionary mapping arg1 to functions
                                 func = {
                                     "reset": reset_chat,
@@ -1169,6 +1189,7 @@ try:
                                     "resetall": resetall,
                                     "block" : block_by_id,
                                     "unblock" : unblock_by_id,
+                                    "screenshot" : get_screenshot,
                                 }
                                 
                                 func_noadmin = {
@@ -1468,6 +1489,11 @@ try:
                                                 for bye_msg in bye_msg_list:
                                                     if bye_msg:
                                                         get_message_input().send_keys(remove_non_bmp_characters(bye_msg) + "\n")
+                                            try: # save the screenshot
+                                                os.makedirs("screenshot", exist_ok=True)
+                                                main.screenshot(f"screenshot/{message_id}.png")
+                                            except Exception:
+                                                print_with_time("! Không thể lưu ảnh chụp màn hình")
                                             chat_history_temp.extend(chat_history_new)
                                             chat_history_temp.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : original_msg}, "sending_time" : get_day_and_time() })
                                             chat_histories[message_id] = chat_history_temp
