@@ -39,6 +39,7 @@ import re
 from gemini_generate_image import generate_image
 from google.genai.errors import ClientError
 from image_upload import upload_to_catbox
+import nickname
 
 MESSENGER_HOME_PAGE = "/messages/t/_"
 
@@ -383,6 +384,18 @@ try:
     except Exception as e:
         print_with_time(e)
     chat_infos = pickle_from_file(f_chat_infos, {})
+    def extract_names():
+        result = set()
+        for value in chat_infos.values():
+            name = value.get("idname")
+            if name is not None:
+                result.add(name)
+        return result
+    def find_info_by_name(name):
+        for key, value in chat_infos.items():
+            if value.get("idname") == name:
+                return key, value
+        return None, None  # if not found
     
     # Migrate from old to new list
     __old_status = chat_histories.pop("status", {})
@@ -711,6 +724,8 @@ try:
                         set_structure(chat_infos, [message_id])
                         chat_infos[message_id]["name"] = who_chatted
                         chat_infos[message_id]["fbid"] = facebook_id
+                        if chat_infos[message_id].get("idname", None) is None:
+                            chat_infos[message_id]["idname"] = nickname.generate(who_chatted, extract_names())
                         delay_is_set = chat_infos[message_id].pop("delaytime", None) is not None
                         caption = chat_info.pop("caption", None)
 
@@ -1042,7 +1057,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["chatable"] = False
                                     return f"Bot is muted in chat with id {chatid}"
 
@@ -1050,7 +1067,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["chatable"] = True
                                     return f"Bot is unmuted in chat with id {chatid}"
 
@@ -1058,7 +1077,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["block"] = True
                                     return f"Blocked {chatid}"
 
@@ -1066,7 +1087,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["block"] = False
                                     return f"Unblocked {chatid}"
 
@@ -1074,7 +1097,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["xxx"] = True
                                     return f"Allowed bot to send nude pictures in chat with id {chatid}"
 
@@ -1082,7 +1107,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     chat_infos.setdefault(chatid, {})["xxx"] = False
                                     return f"Denied bot from sending nude photos in chat with id {chatid}"
 
@@ -1090,7 +1117,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     return pasterman(json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2))
 
                                 def checkib(chatids, msg=None):
@@ -1106,7 +1135,9 @@ try:
                                     if chatid is None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return f"Invalid chat id: {chatid}"
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     chat_info = { "id": chatid, "href": f"/messages/t/{chatid}" }
                                     ok = f"Added {chatid} into check list"
                                     if msg is not None:
@@ -1119,7 +1150,16 @@ try:
                                     if name == "inbox":
                                         text = "LIST:  \n"
                                         for key, val in chat_infos.items():
-                                            text += f"- ID:{key} FBID:{val.get('fbid', key)} CHAT:{val.get('chatable', True)} BLOCK:{val.get('block', False)} XXX:{val.get('xxx', False)} NAME:{val.get('name', 'Unknown')}\n"
+                                            text += (
+                                                f"- ID:{key}\n"
+                                                + (f"  IDNAME:{val.get('idname')}\n" if val.get('idname') is not None else "")
+                                                + f"  FBID:{val.get('fbid', key)}\n"
+                                                + f"  NAME:{val.get('name', 'Unknown')}\n"
+                                                + f"  CHAT:{val.get('chatable', True)}\n"
+                                                + f"  BLOCK:{val.get('block', False)}\n"
+                                                + f"  XXX:{val.get('xxx', False)}\n"
+                                                "\n"
+                                            )
                                         return pasterman(text)
                                     if name == "cookies":
                                         return f'{selenium_cookies_to_cookie_header(cookies)}'
@@ -1169,7 +1209,9 @@ try:
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
-                                        return id_invalid_err
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
                                     screenshot_path = f"screenshot/{chatid}.png"
                                     if os.path.exists(screenshot_path):
                                         return upload_to_catbox(screenshot_path)
@@ -1183,6 +1225,19 @@ try:
                                             f"/cmd checkib {chatid}"
                                     )
                                     
+
+                                def setname(chatid, name_to_generate = None):
+                                    if chatid == None:
+                                        return "Please provide a chat id!"
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    if name_to_generate == None:
+                                        return "Please provide a name!"
+                                    idname = nickname.generate(name_to_generate, extract_names())
+                                    chat_infos.setdefault(chatid, {})["idname"] = idname
+                                    return f"Set id name of {chatid} to {idname}"
 
                                 # Dictionary mapping arg1 to functions
                                 func = {
@@ -1205,6 +1260,7 @@ try:
                                     "unblock" : unblock_by_id,
                                     "ss" : get_screenshot,
                                     "screenshot" : get_screenshot,
+                                    "setname" : setname,
                                 }
                                 
                                 func_noadmin = {
