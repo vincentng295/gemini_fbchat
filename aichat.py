@@ -1203,6 +1203,7 @@ try:
                                     "resetall": resetall,
                                     "block" : block_by_id,
                                     "unblock" : unblock_by_id,
+                                    "ss" : get_screenshot,
                                     "screenshot" : get_screenshot,
                                 }
                                 
