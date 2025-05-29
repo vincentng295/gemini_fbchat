@@ -40,6 +40,7 @@ from gemini_generate_image import generate_image
 from google.genai.errors import ClientError
 from image_upload import upload_to_catbox
 import nickname
+import inspect
 
 MESSENGER_HOME_PAGE = "/messages/t/_"
 
@@ -1026,6 +1027,11 @@ try:
                                 id_invalid_err = "ID must be numeric"
 
                                 def reset_chat(msg = None, title = None):
+                                    """
+                                    Clear chat history. 
+                                    Make bot start with clean memory.
+                                    /cmd reset <id/idname>
+                                    """
                                     global reset
                                     reset = True
                                     if msg == None:
@@ -1036,6 +1042,10 @@ try:
                                     return f'Bot has been reset in chat with id {msg}'
 
                                 def resetall(title = None, _1 = None):
+                                    """
+                                    Erase all chat histories.
+                                    /cmd resetall
+                                    """
                                     for key in chat_histories:
                                         reset_chat(key, title)
                                     return "Bot has been reset"
@@ -1054,6 +1064,11 @@ try:
                                     return f'Unknown mute mode! Use "1" to mute the bot or "0" to unmute the bot.'
 
                                 def mute_by_id(chatid, _1 = None):
+                                    """
+                                    Mute bot in this chat.
+                                    In group chat, unmute it by tagging its name.
+                                    /cmd mute <id/idname>
+                                    """
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
@@ -1064,6 +1079,10 @@ try:
                                     return f"Bot is muted in chat with id {chatid}"
 
                                 def unmute_by_id(chatid, _1 = None):
+                                    """
+                                    Unmute bot in this chat.
+                                    /cmd unmute <id/idname>
+                                    """
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
@@ -1074,6 +1093,11 @@ try:
                                     return f"Bot is unmuted in chat with id {chatid}"
 
                                 def block_by_id(chatid, _1 = None):
+                                    """
+                                    Block this chat so that
+                                    bot will ignore all messages from it.
+                                    /cmd block <id/idname>
+                                    """
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
@@ -1084,6 +1108,11 @@ try:
                                     return f"Blocked {chatid}"
 
                                 def unblock_by_id(chatid, _1 = None):
+                                    """
+                                    Unblock this chat so that
+                                    bot will continue to interact with chat.
+                                    /cmd unblock <id/idname>
+                                    """
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
@@ -1114,6 +1143,10 @@ try:
                                     return f"Denied bot from sending nude photos in chat with id {chatid}"
 
                                 def dump_chat(chatid, _1 = None):
+                                    """
+                                    Dump the chat that bot have saved into memory.
+                                    /cmd dump <id/idname>
+                                    """
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
@@ -1123,6 +1156,12 @@ try:
                                     return pasterman(json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2))
 
                                 def checkib(chatids, msg=None):
+                                    """
+                                    Ask bot to check the chat given by id 
+                                    /cmd checkib <id/idname>
+                                    and send message if provided
+                                    /cmd send <id/idname> <msg>
+                                    """
                                     results = []
                                     for chatid in chatids.split(","):
                                         chatid = chatid.strip()
@@ -1147,7 +1186,12 @@ try:
                                     return ok
 
                                 def get_info(name, _1 = None):
+                                    """
+                                    Get infomation of bot.
+                                    /cmd get [inbox|enckey|intro|info|rules|status|genkey]
+                                    """
                                     if name == "inbox":
+                                        # Return list of bot's inboxes
                                         text = "LIST:  \n"
                                         for key, val in chat_infos.items():
                                             text += (
@@ -1162,50 +1206,87 @@ try:
                                             )
                                         return pasterman(text)
                                     if name == "cookies":
+                                        # Return running cookies of bot
                                         return f'{selenium_cookies_to_cookie_header(cookies)}'
                                     if name == "bakcookies":
+                                        # Return alternative cookies of bot
                                         return f'{selenium_cookies_to_cookie_header(bak_cookies)}'
                                     if name == "enckey":
+                                        # Return encrypted key of encrypted files
                                         return PASSWORD
                                     if name == "intro":
+                                        # Return AI's persona instruction
                                         return pasterman(ai_prompt)
                                     if name == "info":
+                                        # Return bot's Facebook information
                                         return pasterman(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
                                     if name == "rules":
+                                        # Return current setting rules
                                         return f'Rules: {chat_infos[admin_fbid]["admin_settings"].setdefault("opts", "")}'
                                     if name == "status":
+                                        # Return status of bot, whenever it's running automated reply or not
                                         return f"AICHAT: {chat_infos[admin_fbid]['admin_settings'].get('aichat')}"
                                     if name == "genkey":
+                                        # Return Gemini API Key
                                         return f'Gemini API KEY: {genai_keys_text}'
                                     return f"Invalid argument: {name}"
 
                                 def terminate(_0 = None, _1 = None):
+                                    """
+                                    Terminate and shut down bot.
+                                    You need to start bot manually after that!
+                                    /cmd terminate
+                                    """
                                     global should_stop
                                     should_stop = True
                                     return "Good bye!"
 
                                 def do_stop(_0 = None, _1 = None):
+                                    """
+                                    Stop bot automated reply.
+                                    /cmd stop
+                                    """
                                     chat_infos[admin_fbid]["admin_settings"]["aichat"] = False
                                     return "Automated reply has been stopped!"
 
                                 def do_start(_0 = None, _1 = None):
+                                    """
+                                    Start bot automated reply.
+                                    /cmd start
+                                    """
                                     chat_infos[admin_fbid]["admin_settings"]["aichat"] = True
                                     return "Automated reply has been started!"
 
                                 def update_model(_0 = None, _1 = None):
+                                    """
+                                    Update model with new instruction.
+                                    /cmd update
+                                    """
                                     load_instruction()
                                     return "Update model!"
 
                                 def set_rules(rules, _1 = None):
+                                    """
+                                    Give bot the rules.
+                                    /cmd setrules <id/oldidname> <idname>
+                                    """
                                     if rules is not None:
                                         __set_rules(rules)
                                         return f"Set rules to {rules}"
                                     return "Nothing to set?"
 
                                 def getid(_0 = None, _1 = None):
+                                    """
+                                    Get Facebook ID of this chat.
+                                    /cmd getid
+                                    """
                                     return facebook_id
 
                                 def get_screenshot(chatid, _1 = None):
+                                    """
+                                    Get screenshot of chat given by id.
+                                    /cmd screenshot <id/idname>
+                                    """
                                     if chatid == None:
                                         chatid = message_id
                                     if not chatid.isnumeric():
@@ -1227,6 +1308,10 @@ try:
                                     
 
                                 def setname(chatid, name_to_generate = None):
+                                    """
+                                    Give a chat a custom id name instead of numberic id.
+                                    /cmd setname <id/oldidname> <idname>
+                                    """
                                     if chatid == None:
                                         return "Please provide a chat id!"
                                     if not chatid.isnumeric():
@@ -1238,6 +1323,28 @@ try:
                                     idname = nickname.generate(name_to_generate, extract_names())
                                     chat_infos.setdefault(chatid, {})["idname"] = idname
                                     return f"Set id name of {chatid} to {idname}"
+
+                                def show_help(_0=None, _1=None):
+                                    """
+                                    Show detailed help for all available commands with descriptions.
+                                    /cmd help
+                                    """
+
+                                    help_text = "Detailed Help for Available Commands:\n\n"
+
+                                    for fn in set(func.values()):
+                                        doc = fn.__doc__
+                                        if doc:
+                                            help_text += '\n'.join(line.strip() for line in doc.splitlines())
+
+                                    help_text += "\nUser-level commands:\n\n"
+
+                                    for fn in set(func_noadmin.values()):
+                                        doc = fn.__doc__
+                                        if doc:
+                                            help_text += '\n'.join(line.strip() for line in doc.splitlines())
+
+                                    return pasterman(help_text)
 
                                 # Dictionary mapping arg1 to functions
                                 func = {
@@ -1261,6 +1368,7 @@ try:
                                     "ss" : get_screenshot,
                                     "screenshot" : get_screenshot,
                                     "setname" : setname,
+                                    "help": show_help,
                                 }
                                 
                                 func_noadmin = {
