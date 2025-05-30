@@ -587,7 +587,7 @@ try:
                         
                         delay_rep_time = info.get("delaytime", None) is not None and (current_unix >= info.get("delaytime", current_unix))
                         
-                        if not delay_rep_time and len(new_chat_indicator) <= 0 and ("aichat_no_welcome" in work_jobs or chat_histories.get(message_id, None)):
+                        if not delay_rep_time and len(new_chat_indicator) <= 0 and ("no_welcome" in global_set["rules"] or chat_histories.get(message_id, None)):
                             continue
                         if (chat_infos[admin_fbid]["admin_settings"].get("aichat", True) == False or info.get("block", False) == True) and info.get("fbid", message_id) != admin_fbid:
                             continue
