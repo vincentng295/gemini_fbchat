@@ -790,6 +790,8 @@ try:
                                                 msg["info"]["last_state"] = file_upload.state
                                             if msg["info"].get("url", None) is None:
                                                 final_last_msg["info"]["url"] = get_local_file_url(file_name) # Generate temp url
+                                            else:
+                                                final_last_msg["info"]["url"] = register_shorturl(final_last_msg["info"]["url"])
                                         result.append(json.dumps(final_last_msg, ensure_ascii=False))
                                         result.extend(file_result)
                                     return result

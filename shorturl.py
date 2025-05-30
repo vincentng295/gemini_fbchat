@@ -1,14 +1,28 @@
 from flask import Flask, redirect, abort, render_template_string, send_from_directory
 from threading import Thread
-import hashlib
 import os
+import random
+import string
 
 shorturl_app = Flask(__name__)
 url_map = {}
+reverse_map = {}  # Giúp kiểm tra nếu URL đã tồn tại
+
+def generate_random_key(length=12):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 def register_shorturl(url):
-    short_key = hashlib.md5(url.encode()).hexdigest()[:6]
+    if url in reverse_map:
+        short_key = reverse_map[url]
+        return f"http://localhost:5000/short/{short_key}"
+    
+    while True:
+        short_key = generate_random_key()
+        if short_key not in url_map:
+            break
+
     url_map[short_key] = url
+    reverse_map[url] = short_key
     return f"http://localhost:5000/short/{short_key}"
 
 def get_local_file_url(filename):
