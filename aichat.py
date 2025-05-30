@@ -589,6 +589,11 @@ try:
                         
                         if not delay_rep_time and len(new_chat_indicator) <= 0 and ("no_welcome" in global_set["rules"] or chat_histories.get(message_id, None)):
                             continue
+                        
+                        in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
+                        if in_cooldown:
+                            continue
+                        
                         if (chat_infos[admin_fbid]["admin_settings"].get("aichat", True) == False or info.get("block", False) == True) and info.get("fbid", message_id) != admin_fbid:
                             continue
                         chat_list.append(chat_info)
@@ -727,7 +732,10 @@ try:
                         chat_infos[message_id]["fbid"] = facebook_id
                         if chat_infos[message_id].get("idname", None) is None:
                             chat_infos[message_id]["idname"] = nickname.generate(who_chatted, extract_names())
+                        # Pop delaytime
                         delay_is_set = chat_infos[message_id].pop("delaytime", None) is not None
+                        # Remove cooldown
+                        chat_infos[message_id].pop("cooldown", 0)
                         caption = chat_info.pop("caption", None)
 
                         while True:
@@ -1435,6 +1443,7 @@ try:
                                         for result in command_result:
                                             send_keys_long_text(get_message_input(), remove_non_bmp_characters(replace_emoji_with_shortcut(result)))
                                             get_message_input().send_keys("\n") # Press Enter to send image
+                                        if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
                                 except Exception:
                                     pass
                                 if should_stop:
@@ -1685,6 +1694,7 @@ try:
                                                 file_object = BytesIO(file_data)
                                                 os.makedirs(os.path.dirname(file_name), exist_ok=True)
                                                 bytesio_to_file(file_object, file_name)
+                                            if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
                                         break
                                     except NoSuchElementException:
                                         print_with_time("Không thể trả lời")
