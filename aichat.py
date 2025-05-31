@@ -202,6 +202,59 @@ try:
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
     driver.get("https://www.facebook.com/me/photos_by/")
     wait_for_load(driver)
+    
+    # Define a mapping of chat tabs to their corresponding URLs
+    def __init_last_reload_ts_mapping():
+        return {
+            chat_tab : 0,
+            mobileview : 0,
+        }
+    last_reload_ts_mapping = __init_last_reload_ts_mapping()
+    ee2e_resolved = False
+    screenshot_ids_to_backup = set()
+
+    def check_fb_login():
+        global cookies, bak_cookies, last_reload_ts_mapping
+        try:
+            current_url = driver.current_url
+            if is_facebook_domain(current_url) and get_path(current_url).startswith("/checkpoint/"):
+                print_with_time("Tài khoản bị đình chỉ bởi Facebook")
+                raise KeyboardInterrupt
+            new_cookies = driver.get_cookies()
+            if is_facebook_logged_out(new_cookies):
+                if check_cookies_(cookies) == 1:
+                    # The cookies is not actually die
+                    print_with_time("Cập nhật lại cookies")
+                    for cookie in cookies:
+                        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
+                        driver.add_cookie(cookie)
+                    set_facebook_id(driver, c_user, i_user)
+                    last_reload_ts_mapping = __init_last_reload_ts_mapping()
+                    driver.get("https://www.facebook.com/me/photos_by/")
+                    wait_for_load(driver)
+                    time.sleep(1)
+                elif bak_cookies is not None:
+                    print_with_time("Tài khoản bị đăng xuất, sử dụng cookies dự phòng")
+                    # TODO: obtain new cookies
+                    driver.delete_all_cookies()
+                    for cookie in bak_cookies:
+                        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
+                        driver.add_cookie(cookie)
+                    set_facebook_id(driver, c_user, i_user)
+                    bak_cookies = None
+                    last_reload_ts_mapping = __init_last_reload_ts_mapping()
+                    driver.get("https://www.facebook.com/me/photos_by/")
+                    wait_for_load(driver)
+                    time.sleep(1)
+                else:
+                    print_with_time("Tài khoản bị đăng xuất")
+                    raise KeyboardInterrupt
+        except Exception as e:
+            print_with_time("Lỗi xảy ra:", e)
+            pass # Ignore all errors
+    # Double check
+    check_fb_login()
+    check_fb_login()
 
     f_self_facebook_info = "self_facebook_info.bin"
     f_chat_history = "chat_histories.bin"
@@ -430,17 +483,6 @@ try:
     ######################################
     print_with_time("Bắt đầu khởi động!")
     ######################################
-
-    # Define a mapping of chat tabs to their corresponding URLs
-    
-    def __init_last_reload_ts_mapping():
-        return {
-            chat_tab : 0,
-            mobileview : 0,
-        }
-    last_reload_ts_mapping = __init_last_reload_ts_mapping()
-    ee2e_resolved = False
-    screenshot_ids_to_backup = set()
 
     def update():
         print_with_time("Cập nhật cookies lên máy chủ")
@@ -1726,43 +1768,7 @@ try:
         except Exception as e:
             print_with_time(e)
         
-        try:
-            current_url = driver.current_url
-            if is_facebook_domain(current_url) and get_path(current_url).startswith("/checkpoint/"):
-                print_with_time("Tài khoản bị đình chỉ bởi Facebook")
-                raise KeyboardInterrupt
-            new_cookies = driver.get_cookies()
-            if is_facebook_logged_out(new_cookies):
-                if check_cookies_(cookies) == 1:
-                    # The cookies is not actually die
-                    print_with_time("Cập nhật lại cookies")
-                    for cookie in cookies:
-                        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
-                        driver.add_cookie(cookie)
-                    set_facebook_id(driver, c_user, i_user)
-                    last_reload_ts_mapping = __init_last_reload_ts_mapping()
-                    driver.get("https://www.facebook.com/me")
-                    wait_for_load(driver)
-                    time.sleep(1)
-                elif bak_cookies is not None:
-                    print_with_time("Tài khoản bị đăng xuất, sử dụng cookies dự phòng")
-                    # TODO: obtain new cookies
-                    driver.delete_all_cookies()
-                    for cookie in bak_cookies:
-                        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
-                        driver.add_cookie(cookie)
-                    set_facebook_id(driver, c_user, i_user)
-                    bak_cookies = None
-                    last_reload_ts_mapping = __init_last_reload_ts_mapping()
-                    driver.get("https://www.facebook.com/me")
-                    wait_for_load(driver)
-                    time.sleep(1)
-                else:
-                    print_with_time("Tài khoản bị đăng xuất")
-                    raise KeyboardInterrupt
-        except Exception as e:
-            print_with_time("Lỗi xảy ra:", e)
-            pass # Ignore all errors
+        check_fb_login()
         try:
             with open("exitnow.txt", "r", encoding='utf-8') as file:
                 content = file.read().strip()  # Read and strip any whitespace/newline
