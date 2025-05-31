@@ -339,7 +339,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
                         ])
                     time.sleep(1)
                     print(f"{hide_email(username)}: Nhấn thay đổi phương thức xác thực")
-                    actions.move_to_element(other_veri_btn).click().perform() # Click other verification method
+                    other_veri_btn.click() # Click other verification method
                     #time.sleep(random.randint(1,3))
                     other_veri_btn = find_element_when_clickable_in_list([
                         (By.XPATH, '//div[contains(text(), "Ứng dụng xác thực")]'),
@@ -347,14 +347,14 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
                         ])
                     time.sleep(1)
                     print(f"{hide_email(username)}: Chọn xác thực bằng mã OTP từ ứng dụng xác thực")
-                    actions.move_to_element(other_veri_btn).click().perform() # Click App Auth method
+                    other_veri_btn.click() # Click App Auth method
                     other_veri_btn = find_element_when_clickable_in_list([
                         (By.XPATH, '//span[contains(text(), "Tiếp tục")]'),
                         (By.XPATH, '//span[contains(text(), "Continue")]')
                         ])
                     time.sleep(1)
                     print(f"{hide_email(username)}: Nhấn vào nút Tiếp tục")
-                    actions.move_to_element(other_veri_btn).click().perform() # Click Continue
+                    other_veri_btn.click() # Click Continue
                 other_veri_btn = find_element_when_clickable(By.CSS_SELECTOR, 'input[type="text"]')
                 continue_btn = find_element_when_clickable_in_list([
                     (By.XPATH, '//span[contains(text(), "Tiếp tục")]'),
@@ -363,10 +363,10 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
                 time.sleep(1)
                 wait_until_safe_totp_time()
                 print(f"{hide_email(username)}: Đã nhập mã OTP")
-                actions.move_to_element(other_veri_btn).click().send_keys(generate_otp(otp_secret) + "\n").perform()
+                other_veri_btn.send_keys(generate_otp(otp_secret) + "\n")
                 time.sleep(1)
                 print(f"{hide_email(username)}: Nhấn xác nhận")
-                actions.move_to_element(continue_btn).click().perform() # Click Confirmed
+                continue_btn.click() # Click Confirmed
             except Exception as e:
                 print(f"Error: {e}")
 
@@ -378,8 +378,8 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         print(_url)
         if  (_url == "www.facebook.com/two_step_verification/two_factor" or 
             _url.startswith("www.facebook.com/auth_platform/")):
-            print(f"{hide_email(username)}: Đang chờ Facebook xác thực. Nếu đã đăng nhập tài khoản này từ thiết bị khác, bạn có thể phê duyệt từ thiết bị đó khác trong vòng 300 giây...")
-            for i in range(300):
+            print(f"{hide_email(username)}: Đang chờ Facebook xác thực. Nếu đã đăng nhập tài khoản này từ thiết bị khác, bạn có thể phê duyệt từ thiết bị đó khác trong vòng 60 giây...")
+            for i in range(60):
                 _url = base_url_with_path(driver.current_url)
                 if  (_url == "www.facebook.com/two_step_verification/two_factor" or 
                     _url.startswith("www.facebook.com/auth_platform/")):
