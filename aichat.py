@@ -649,7 +649,7 @@ try:
                         
                         delay_rep_time = info.get("delaytime", None) is not None and (current_unix >= info.get("delaytime", current_unix))
                         
-                        if not delay_rep_time and len(new_chat_indicator) <= 0 and ("no_welcome" in global_set["rules"] or chat_histories.get(message_id, None)):
+                        if not delay_rep_time and len(new_chat_indicator) <= 0:
                             continue
                         
                         in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
