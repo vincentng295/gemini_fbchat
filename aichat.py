@@ -432,6 +432,7 @@ try:
     chat_infos[admin_fbid]["admin_settings"].setdefault("aichat", True)
     chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_lite", False)
     chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_xxx", False)
+    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_group", True)
     chat_infos[admin_fbid]["admin_settings"].setdefault("genai_visual", True)
     chat_infos[admin_fbid]["admin_settings"].setdefault("auto_friends", "friends" in work_jobs)
     chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
@@ -1147,6 +1148,21 @@ try:
                                         return TL(['I will stop adding new friend requests', 'Tôi sẽ dừng chấp nhận các lời mời kết bạn mới'])
                                     return 'Auto friends: {MODE}'.format(MODE = chat_infos[admin_fbid]["admin_settings"].get("auto_friends", False))
 
+                                def set_groupchat_support(mode, _1 = None):
+                                    """
+                                    Enable or disable automated AI reply on group chat
+                                    /cmd groupchat [true|false]
+                                    """
+                                    if mode == None:
+                                        mode = ""
+                                    if mode.lower() == "true" or mode == "1":
+                                        chat_infos[admin_fbid]["admin_settings"]["aichat_group"] = True
+                                        return TL(['I will reply to any new group incoming message chat from now', 'Tôi sẽ trả lời bất kỳ tin nhắn nhóm mới nào từ bây giờ'])
+                                    if mode.lower() == "false" or mode == "0":
+                                        chat_infos[admin_fbid]["admin_settings"]["aichat_group"] = False
+                                        return TL(['I will only reply to personal conversation', 'Tôi sẽ chỉ trả lời cuộc trò chuyện cá nhân'])
+                                    return 'Group chat support: {MODE}'.format(MODE = chat_infos[admin_fbid]["admin_settings"].get("aichat_group", True))
+
                                 def mute_by_id(chatid, _1 = None):
                                     """
                                     Mute bot in this chat.
@@ -1547,6 +1563,7 @@ try:
                                     "help": show_help,
                                     "lang" : set_lang,
                                     "genaivisual" : set_genai_visual,
+                                    "groupchat" : set_groupchat_support,
                                 }
                                 
                                 func_noadmin = {
@@ -1637,6 +1654,8 @@ try:
                                     if is_file and not delay_is_set:
                                         # Wait user to send text message in 30s before process
                                         chat_infos[message_id]["delaytime"] = int(time.time()) + 30
+                                        break
+                                    if chat_infos[admin_fbid]["admin_settings"].get("aichat_group", True) == False and is_group_chat:
                                         break
                                 fake_typing = True
 
