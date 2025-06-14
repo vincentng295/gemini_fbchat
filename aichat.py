@@ -33,7 +33,7 @@ import threading
 from pasterman import pasterman
 from google import genai
 from google.genai import types # Needed for multimodal content like images
-from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState, GoogleSearch, Tool
+from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState, GoogleSearch, Tool, HttpOptions
 import traceback
 import re
 from gemini_generate_image import generate_image
@@ -87,6 +87,7 @@ genai_keys = [
 genai_keys_for_genai = genai_keys.copy()
 genai_keys_for_genimg = genai_keys.copy()
 client, genimg_client = None, None
+GEMINI_TIMEOUT = 3 * 60 * 1000 # 3 minutes
 
 google_search_tool = Tool(
     google_search = GoogleSearch()
@@ -99,7 +100,7 @@ def pop_key_for_genai():
         return False
     genai_key = genai_keys_for_genai.pop(0)
     #print_with_time(genai_key)
-    client = genai.Client(api_key=genai_key)
+    client = genai.Client(api_key=genai_key, http_options=HttpOptions(timeout=GEMINI_TIMEOUT))
     return True
 pop_key_for_genai()
 
@@ -110,7 +111,7 @@ def pop_key_for_genimg():
         return False
     genimg_key = genai_keys_for_genimg.pop(0)
     #print_with_time(genimg_key)
-    genimg_client = genai.Client(api_key=genimg_key)
+    genimg_client = genai.Client(api_key=genimg_key, http_options=HttpOptions(timeout=GEMINI_TIMEOUT))
     return True
 pop_key_for_genimg()
 
