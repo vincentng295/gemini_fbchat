@@ -1726,7 +1726,7 @@ try:
                                     if not chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False):
                                         prompt_list[:0] = self_image_prompt
                                     exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}}, indent = 4, ensure_ascii=False)
-                                    prompt_list.append(f'>> Generate a response in properly formatted JSON to reply back to user. ABSOLUTELY NO phrases like: “Wait a minute,” “Looking for it,” “Take it easy,” “I’m looking it up,” “Let me check,” or any variation of waiting, looking, or checking. When you receive a question, you must respond immediately as if you already know the information. Do not appear to be processing or delaying. Do not repeat what you already asked or said again!\nExample:\n{exam}\n')
+                                    prompt_list.append(f">> Generate a response in properly formatted JSON to reply back to user. You are not allowed to say or imply that you're checking, searching, loading, waiting, or unsure in any way. Forbidden phrases include but are not limited to: “Wait a minute,” “Looking for it,” “Take it easy,” “I’m looking it up,” “Let me check,” or any variation of waiting, looking, or checking. When you receive a question, you must respond immediately as if you already know the information. Do not appear to be processing or delaying. Do not repeat what you already asked or said again!\nExample:\n{exam}\n")
                                     return prompt_list
                                 prompt_list = build_prompt(chat_history_temp)
                                 
