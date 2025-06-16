@@ -49,6 +49,7 @@ jobs:
       STORAGE_BRANCE: caches/schedule
       PAT : ${{ secrets.PAT }} # Pass PAT Token
       PASSWORD: ${{ secrets.PASSWORD }} # Decrypt key
+      HEADLESS: false # or true
 
     steps:
       # Checkout the repository

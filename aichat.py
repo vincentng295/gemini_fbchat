@@ -147,6 +147,7 @@ def pickle_all():
 
 try:
     # Initialize the driver
+    print_with_time(f"Headless: {headless}")
     driver = __chrome_driver__(scoped_dir, headless)
     actions = ActionChains(driver)
     start_shorturl_thread()
