@@ -206,8 +206,9 @@ try:
     set_facebook_id(driver, c_user, i_user)
     cookies = driver.get_cookies()
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
-    driver.get("https://www.facebook.com/me/photos_by/")
+    driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
     wait_for_load(driver)
+    js_pushstate(driver, "/me/photos_by/")
     
     # Define a mapping of chat tabs to their corresponding URLs
     def __init_last_reload_ts_mapping():
