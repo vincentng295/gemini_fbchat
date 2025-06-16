@@ -113,6 +113,19 @@ def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--lang=en-US")
+    chrome_options.add_argument("--remote-debugging-port=0")
+    chrome_options.add_argument("--disable-popup-blocking")
+    chrome_options.add_argument("--disable-default-apps")
+    chrome_options.add_argument("--no-first-run")
+    chrome_options.add_argument("--disable-background-networking")
+    chrome_options.add_argument("--disable-sync")
+    chrome_options.add_argument("--disable-translate")
+    chrome_options.add_argument("--disable-features=TranslateUI")
+    chrome_options.add_argument("--disable-background-timer-throttling")
+    chrome_options.add_argument("--disable-renderer-backgrounding")
+    chrome_options.add_argument("--disable-device-discovery-notifications")
+    chrome_options.add_argument("--enable-unsafe-swiftshader")
+    chrome_options.add_argument("--enable-unsafe-webgpu")
     # (Optional) Set a common user agent string
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " \
                  "AppleWebKit/537.36 (KHTML, like Gecko) " \
