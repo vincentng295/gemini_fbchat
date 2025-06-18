@@ -207,7 +207,6 @@ try:
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
     driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
     wait_for_load(driver)
-    js_pushstate(driver, "/me/photos_by/")
     
     # Define a mapping of chat tabs to their corresponding URLs
     def __init_last_reload_ts_mapping():
@@ -236,7 +235,7 @@ try:
                         driver.add_cookie(cookie)
                     set_facebook_id(driver, c_user, i_user)
                     last_reload_ts_mapping = __init_last_reload_ts_mapping()
-                    driver.get("https://www.facebook.com/me/photos_by/")
+                    driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
                     wait_for_load(driver)
                     time.sleep(1)
                 elif bak_cookies is not None:
@@ -249,7 +248,7 @@ try:
                     set_facebook_id(driver, c_user, i_user)
                     bak_cookies = None
                     last_reload_ts_mapping = __init_last_reload_ts_mapping()
-                    driver.get("https://www.facebook.com/me/photos_by/")
+                    driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
                     wait_for_load(driver)
                     time.sleep(1)
                 else:
@@ -261,6 +260,8 @@ try:
     # Double check
     check_fb_login()
     check_fb_login()
+
+    js_pushstate(driver, "/me/photos_by/")
 
     f_self_facebook_info = "self_facebook_info.bin"
     f_chat_history = "chat_histories.bin"
