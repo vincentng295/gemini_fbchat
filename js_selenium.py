@@ -77,3 +77,26 @@ def get_profile_switcher_ids(driver):
     # --- Execute script and get the result ---
     profile_ids = driver.execute_script(script)
     return profile_ids
+
+def js_click_at_center(driver, element):
+    driver.execute_script("""
+        function clickAtElementCenter(el) {
+            const rect = el.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+
+            const options = {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                clientX: x,
+                clientY: y
+            };
+
+            el.dispatchEvent(new MouseEvent('mousedown', options));
+            el.dispatchEvent(new MouseEvent('mouseup', options));
+            el.dispatchEvent(new MouseEvent('click', options));
+        }
+
+        clickAtElementCenter(arguments[0]);
+    """, element)

@@ -26,7 +26,7 @@ from fbparser import get_facebook_profile_url, get_facebook_id, get_facebook_nam
 from fb_getcookies import __chrome_driver__ 
 from fb_getcookies import * # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
-from js_selenium import js_pushstate, inject_my_stealth_script
+from js_selenium import js_pushstate, inject_my_stealth_script, js_click_at_center
 from shorturl import start_shorturl_thread, register_shorturl, get_local_file_url
 from PIL import Image
 import threading
@@ -624,10 +624,10 @@ try:
                         otc_input = driver.find_element(By.CSS_SELECTOR, 'input[autocomplete="one-time-code"]')
                         driver.execute_script("arguments[0].setAttribute('class', '');", otc_input)
                         print_with_time("Giải mã đoạn chat được mã hóa...")
-                        actions.move_to_element(otc_input).click().perform()
+                        js_click_at_center(driver, otc_input)
                         time.sleep(2)
                         for digit in onetimecode:
-                            actions.move_to_element(otc_input).send_keys(digit).perform()  # Send the digit to the input element
+                            js_input(driver, otc_input, digit)  # Send the digit to the input element
                             time.sleep(1)  # Wait for 1s before sending the next digit
                         print_with_time("Hoàn tất giải mã!")
                         time.sleep(5)
@@ -1050,14 +1050,12 @@ try:
                                         driver.execute_script("arguments[0].setAttribute('checkpoint', 'checkpointed')", msg_element)
                                     return chat_history_new, files_mapping
 
-                                try: # Emulate typing...
+                                try:
                                     if not get_message_input():
                                         if get_alert():
-                                            actions.move_to_element(get_alert()).click().perform()
+                                            js_click_at_center(driver, get_alert())
                                         break
-                                    actions.move_to_element(get_message_input()).click().perform()
-                                    if not should_not_chat:
-                                        actions.move_to_element(get_message_input()).click().send_keys(" ").perform()
+                                    js_click_at_center(driver, get_message_input())
                                 except Exception:
                                     pass
                                 chat_history_new, files_mapping = process_elements(msg_table)
