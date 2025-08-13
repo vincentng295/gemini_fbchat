@@ -44,7 +44,7 @@ import nickname
 import inspect
 
 MESSENGER_HOME_PAGE = "/messages/t/_"
-GENAI_MODEL = "gemini-2.0-flash"
+GENAI_MODEL = "gemini-2.5-flash"
 
 def is_only_whitespace(s):
     return all(
@@ -384,7 +384,8 @@ try:
                 system_instruction=main_model_config["system_instruction"],
                 safety_settings=safety_settings,
                 response_mime_type="application/json",
-                tools=[google_search_tool],
+                # Cannot use tools when using Gemini 2.5 Flash with json response_mime_type
+                #tools=[google_search_tool],
             )
         )
 
