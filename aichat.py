@@ -402,6 +402,7 @@ try:
             config = GenerateContentConfig(
                 system_instruction=[ get_devmode_prompt(), "You are a summary model. When I give a prompt, your output must be a summary of the chat conversation, including all previous summaries and important context. Do not include quoted sentences, markdown, or formatting. The summary should be in English, direct, and retain essential details for future reference." ],
                 safety_settings=safety_settings,
+                thinking_config=types.ThinkingConfig(thinking_budget=0), # No thinking
             )
         )
 
