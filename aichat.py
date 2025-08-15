@@ -42,6 +42,10 @@ from image_upload import upload_to_catbox
 from image_visual import simulate_camera_effect_bytesio
 import nickname
 import inspect
+import logging
+from selenium.webdriver.remote.remote_connection import LOGGER
+
+LOGGER.setLevel(logging.WARNING)
 
 MESSENGER_HOME_PAGE = "/messages/t/_"
 GENAI_MODEL = "gemini-2.5-flash"
