@@ -366,8 +366,10 @@ try:
                 )
             ]
 
+    ai_prompt = None
+
     def load_instruction():
-        global main_model_config
+        global ai_prompt, main_model_config
         if on_github_workflows:
             get_file(GITHUB_TOKEN, GITHUB_REPO, f_intro_txt, STORAGE_BRANCE, f_intro_txt)
         with open(f_intro_txt, "r", encoding='utf-8') as f: # What kind of person will AI simulate?

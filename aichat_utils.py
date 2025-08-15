@@ -8,6 +8,8 @@ import mimetypes
 import os
 from urllib.parse import urljoin, urlparse, parse_qs  # For URL manipulation
 from js_selenium import js_input
+import psutil
+
 
 def get_devmode_prompt():
     return """
@@ -502,3 +504,12 @@ def set_structure(data, path):
             current[key] = {}  # Only create if not a dict
         current = current[key]
     return struct_dict["root"]
+
+def get_ram_usage():
+    # Lấy thông tin RAM
+    mem = psutil.virtual_memory()
+    # Chuyển từ bytes sang GB
+    used_gb = mem.used / (1024 ** 3)
+    total_gb = mem.total / (1024 ** 3)
+    # In ra định dạng: RAM: ĐÃ DÙNG / TỔNG
+    return f"RAM: {used_gb:.1f} GB / {total_gb:.1f} GB"
