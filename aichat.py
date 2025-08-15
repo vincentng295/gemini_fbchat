@@ -1384,6 +1384,9 @@ try:
                                     if name == "genkey":
                                         # Return Gemini API Key
                                         return f'Gemini API KEY: {genai_keys_text}'
+                                    if name == "ram":
+                                        # Return ram usage of host running bot
+                                        return get_ram_usage()
                                     return f"Invalid argument: {name}"
 
                                 def terminate(_0 = None, _1 = None):
