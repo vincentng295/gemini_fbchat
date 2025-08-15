@@ -1018,6 +1018,8 @@ try:
                                                 parsed_url = urlparse(file_url)
                                                 file_down_name = parsed_url.path.rstrip("/").split("/")[-1]
                                             file_ext, mime_type = get_mine_type(file_down_name)
+                                            if file_ext.lower() == ".json":
+                                                mime_type = "text/plain" # JSON files are not supported by Gemini so treat it as text
                                             if check_supported_file(mime_type):
                                                 file_name = f"files/{generate_random_string(40)}"
                                                 files_mapping[file_name] = ("url", file_url)
