@@ -67,7 +67,8 @@ def run_shorturl_flask():
 
 def start_shorturl_thread():
     global server_port
-    server_port = find_free_port(30000, 60000)
+    server_port = find_free_port(10000, 30000) # Tìm port trống trong khoảng từ 10000 đến 30000
+    print(f"Short URL server running on port {server_port}")
     flask_thread = Thread(target=run_shorturl_flask)
     flask_thread.daemon = True
     flask_thread.start()
