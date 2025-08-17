@@ -44,6 +44,7 @@ import nickname
 import inspect
 import logging
 from selenium.webdriver.remote.remote_connection import LOGGER
+from collections import deque
 
 LOGGER.setLevel(logging.WARNING)
 
@@ -650,7 +651,7 @@ try:
                 except Exception:
                     pass
 
-                chat_list = []
+                chat_list = deque()
                 # find all chat buttons
                 chat_btns = driver.find_elements(By.CSS_SELECTOR, 'a[href^="/messages/"]')
                 current_unix = int(time.time())
@@ -680,7 +681,8 @@ try:
 
                 if len(chat_list) > 0:
                     print_with_time(f"Nhận được {len(chat_list)} tin nhắn mới")
-                    for chat_info in chat_list:
+                    while chat_list:
+                        chat_info = chat_list.popleft()
                         if True:
                             is_group_chat = False
                             chat_href = chat_info["href"]
@@ -1872,7 +1874,7 @@ try:
                                                         if "debug" in global_set["rules"]:
                                                             print_with_time(f"AI gửi nhạc {itunes_keyword} từ: {itunes_link}")
                                                         drop_file(driver, button, music_io, "audio/mp4")
-                                                        del music_ios
+                                                        del music_io
                                                         break
                                                 except Exception:
                                                     print_with_time(f"Không thể gửi nhạc: {itunes_keyword}")
@@ -1925,7 +1927,8 @@ try:
                                         break
                                     except (ClientError, ServerError) as e:
                                         if pop_key_for_genai(): # Switch key if possible
-                                            chat_list.append(chat_info)
+                                            print_with_time(f"Lỗi ClientError/ServerError từ Gemini, thử lại với khóa khác")
+                                            checkib(chat_info["id"], None) # Update ib status
                                         print_with_time(e)
                                         break
                                     except JSON5DecodeError as e:
