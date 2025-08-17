@@ -252,7 +252,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         return 0, None
     try:
         scoped_dir = os.getenv("SCPDIR")
-        driver = __chrome_driver__(scoped_dir, False, incognito)
+        driver = __chrome_driver__(scoped_dir, True, incognito)
 
         actions = ActionChains(driver)
         

@@ -11,10 +11,11 @@ try:
     scoped_dir = os.getenv("SCPDIR")
     print(scoped_dir)
     for opt in [
-        (scoped_dir, False, True),
+        (scoped_dir, True, True),
     ]:
         driver = __chrome_driver__(*opt)
         drivers.append(driver)
+    print("Test success!")
 except Exception as e:
     print(e)
 finally:
