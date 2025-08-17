@@ -38,63 +38,57 @@ on:
 
 jobs:
   run-aichat:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest   # 🔥 đổi sang Linux runner
     env:
       SCPDIR: ${{ github.workspace }}/scoped_dir
       COOKIESFILE: ${{ github.workspace }}/cookies.json
       FBINFOSFILE: ${{ github.workspace }}/facebook_infos.bin
       SELF_FBINFOFILE: ${{ github.workspace }}/self_facebook_info.bin
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Pass GitHub Token
-      GITHUB_REPO: ${{ github.repository }}     # Pass the repository (owner/repo)
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPO: ${{ github.repository }}
       STORAGE_BRANCE: caches/schedule
-      PAT : ${{ secrets.PAT }} # Pass PAT Token
-      PASSWORD: ${{ secrets.PASSWORD }} # Decrypt key
-      HEADLESS: true # you can set to false for debugging
+      PAT: ${{ secrets.PAT }}
+      PASSWORD: ${{ secrets.PASSWORD }}
+      HEADLESS: true
 
     steps:
-      # Checkout the repository
       - name: Checkout Gemini FBChat
         uses: actions/checkout@v3
         with:
           repository: vincentng295/gemini_fbchat
-          ref: main # Optional: main or tags name
+          ref: main
 
-      # Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
-          cache: 'pip'  # caching pip dependencies
+          python-version: "3.9"
+          cache: "pip"
 
-      # Install dependencies
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python3 -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Test selenium
       - name: Test selenium
         run: |
-          python test_selenium.py
+          python3 test_selenium.py
         env:
           PYTHONUNBUFFERED: "1"
 
-      # Wait for other runs to finish
       - name: Wait for other runs to finish
         if: ${{ github.event_name == 'schedule' || inputs.check_only != true }}
         run: |
-          python wait_for_other_runs.py
+          python3 wait_for_other_runs.py
         env:
           PYTHONUNBUFFERED: "1"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Pass GitHub Token
-          GITHUB_REPO: ${{ github.repository }}     # Pass the repository (owner/repo)
-          WORKFLOW_ID: ${{ github.workflow }}       # Pass the workflow ID (name of the workflow)
-          CURRENT_RUN_ID: ${{ github.run_id }}      # Pass the current run ID
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          WORKFLOW_ID: ${{ github.workflow }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
 
-      # Run the login script (generates cookies.json if not found)
       - name: Login Facebook account
         run: |
-          python fb_getcookies_test.py
+          python3 fb_getcookies_test.py
         env:
           PYTHONUNBUFFERED: "1"
 
@@ -108,11 +102,10 @@ jobs:
           restore-keys: |
             scoped-dir-${{ runner.os }}-
 
-      # Run AI Chat on Messenger account (schedule)
       - name: Run AI Chat on Messenger account
         if: ${{ github.event_name == 'schedule' || inputs.check_only != true }}
         run: |
-          python aichat_timeout.py
+          python3 aichat_linux_timeout.py
         env:
           PYTHONUNBUFFERED: "1"
           GENKEY: ${{ secrets.GENKEY }}

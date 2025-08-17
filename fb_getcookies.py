@@ -124,8 +124,7 @@ def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
     chrome_options.add_argument("--disable-background-timer-throttling")
     chrome_options.add_argument("--disable-renderer-backgrounding")
     chrome_options.add_argument("--disable-device-discovery-notifications")
-    chrome_options.add_argument("--enable-unsafe-swiftshader")
-    chrome_options.add_argument("--enable-unsafe-webgpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
     # (Optional) Set a common user agent string
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " \
                  "AppleWebKit/537.36 (KHTML, like Gecko) " \
@@ -133,6 +132,7 @@ def __chrome_driver__(scoped_dir = None, headless = True, incognito = False):
     chrome_options.add_argument(f"user-agent={user_agent}")
     # Use a specific user data directory if provided
     if scoped_dir:
+        scoped_dir = os.path.abspath(scoped_dir)
         chrome_options.add_argument(f"--user-data-dir={scoped_dir}")
         
     # Define the path to the directory containing unpacked extension directories
