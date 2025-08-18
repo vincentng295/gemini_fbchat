@@ -367,22 +367,6 @@ try:
                 )
             ]
 
-    ai_prompt = None
-
-    def load_instruction():
-        global ai_prompt, main_model_config
-        if on_github_workflows:
-            get_file(GITHUB_TOKEN, GITHUB_REPO, f_intro_txt, STORAGE_BRANCE, f_intro_txt)
-        with open(f_intro_txt, "r", encoding='utf-8') as f: # What kind of person will AI simulate?
-            ai_prompt = f.read()
-        # Setup overall guidance to the model
-        instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
-        main_model_config = {
-            "system_instruction": instruction
-        }
-
-    load_instruction()
-
     def reply_generate_content(parts):
         return client.models.generate_content(
             model=GENAI_MODEL,
@@ -452,6 +436,36 @@ try:
     chat_infos[admin_fbid]["admin_settings"].setdefault("genai_visual", False)
     chat_infos[admin_fbid]["admin_settings"].setdefault("auto_friends", "friends" in work_jobs)
     chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
+
+    ai_prompt = None
+
+
+    def fetch_instruction():
+        global ai_prompt
+        if on_github_workflows:
+            get_file(GITHUB_TOKEN, GITHUB_REPO, f_intro_txt, STORAGE_BRANCE, f_intro_txt)
+        with open(f_intro_txt, "r", encoding='utf-8') as f: # What kind of person will AI simulate?
+            ai_prompt = f.read()
+
+
+    def load_instruction(force = False, prompt = None):
+        global ai_prompt, main_model_config
+        if prompt:
+            ai_prompt = prompt
+        # Setup overall guidance to the model
+        if force:
+            chat_infos[admin_fbid]["admin_settings"]["system_prompt"] = ai_prompt
+        else:
+            chat_infos[admin_fbid]["admin_settings"].setdefault("system_prompt", ai_prompt)
+        ai_prompt = chat_infos[admin_fbid]["admin_settings"].get("system_prompt", ai_prompt)
+        instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
+        main_model_config = {
+            "system_instruction": instruction
+        }
+
+    fetch_instruction()
+    load_instruction()
+
     global_set = {}
     
 
@@ -1418,13 +1432,24 @@ try:
                                     chat_infos[admin_fbid]["admin_settings"]["aichat"] = True
                                     return TL(['I will start replying to new message', 'Tôi sẽ bắt đầu trả lời tin nhắn mới'])
 
-                                def update_model(_0 = None, _1 = None):
+                                def set_intro(prompt=None, _1=None):
                                     """
-                                    Update model with new instruction.
-                                    /cmd update
+                                    Set or reset the default system instruction.
+                                    /cmd setintro <prompt>
                                     """
-                                    load_instruction()
-                                    return "Update model!"
+                                    if prompt is None:
+                                        fetch_instruction()
+                                        ret = TL([
+                                            "System instruction has been reset from introduction.txt.",
+                                            "Hệ thống đã được reset lại hướng dẫn từ introduction.txt."
+                                        ])
+                                    else:
+                                        ret = TL([
+                                            f"System instruction has been updated",
+                                            f"Hệ thống đã cập nhật hướng dẫn"
+                                        ])
+                                    load_instruction(True, prompt)
+                                    return ret
 
                                 def set_rules(rules, _1 = None):
                                     """
@@ -1564,7 +1589,7 @@ try:
                                     "get" : get_info,
                                     "dump" : dump_chat,
                                     "terminate" : terminate,
-                                    "update" : update_model,
+                                    "setintro" : set_intro,
                                     "allowxxx" : allow_xxx,
                                     "denyxxx" : deny_xxx,
                                     "checkib" : checkib,
