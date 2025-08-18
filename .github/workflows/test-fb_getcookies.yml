@@ -7,7 +7,7 @@ on:
 
 jobs:
   run-aichat:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
 
     steps:
       # Checkout the repository
@@ -30,6 +30,6 @@ jobs:
       # Run the login script (generates cookies.json if not found)
       - name: Login Facebook account
         run: |
-          python fb_getcookies.py
+          python3 fb_getcookies.py
         env:
           PYTHONUNBUFFERED: "1"
