@@ -45,6 +45,7 @@ import inspect
 import logging
 from selenium.webdriver.remote.remote_connection import LOGGER
 from collections import deque
+from gittojson import repo_to_json
 
 LOGGER.setLevel(logging.WARNING)
 
@@ -1808,6 +1809,7 @@ try:
                                             reply_msg, img_search["link"] = extract_keywords(r'\[imglink\](.*?)\[/imglink\]', reply_msg)
                                             reply_msg, gen_imgs = extract_keywords(r'\[genimg\](.*?)\[/genimg\]', reply_msg)
                                             reply_msg, itunes_keywords = extract_keywords(r'\[itunes\](.*?)\[/itunes\]', reply_msg)
+                                            reply_msg, github_keywords = extract_keywords(r'\[github\](.*?)\[/github\]', reply_msg)
                                             reply_msg, bot_commands = extract_keywords(r'\[cmd\](.*?)\[/cmd\]', reply_msg)
                                             
 
@@ -1827,7 +1829,9 @@ try:
                                                             del image_io
                                                             break
                                                     except Exception:
-                                                        print_with_time(f"Không thể gửi ảnh: {img_keyword}")
+                                                        media_history.append({"message_type" : "error", "info" : f"Cannot access image: {img_keyword}"})
+                                                        if "debug" in global_set["rules"]:
+                                                            print_with_time(f"Không thể gửi ảnh: {img_keyword}")
                                             for gen_img in gen_imgs:
                                                 gen_img_items = gen_img.split('|')
                                                 gen_img = gen_img_items.pop()
@@ -1876,7 +1880,8 @@ try:
                                                         chat_history_temp.append({"message_type" : "generate_image_result", "info" : {"prompt" : gen_img, "final_result" : "FAILED TO GENERATED: ResourceExhausted"}})
                                                         break
                                                     except Exception as e:
-                                                        print_with_time(f"Không thể gửi ảnh: {gen_img}")
+                                                        if "debug" in global_set["rules"]:
+                                                            print_with_time(f"Không thể gửi ảnh: {gen_img}")
                                                         chat_history_temp.append({"message_type" : "generate_image_result", "info" : {"prompt" : gen_img, "final_result" : "FAILED TO GENERATED"}})
                                                         #print_with_time(e)
                                                         break
@@ -1902,7 +1907,23 @@ try:
                                                         del music_io
                                                         break
                                                 except Exception:
-                                                    print_with_time(f"Không thể gửi nhạc: {itunes_keyword}")
+                                                    if "debug" in global_set["rules"]:
+                                                        print_with_time(f"Không thể gửi nhạc: {itunes_keyword}")
+                                            for github_keyword in github_keywords:
+                                                try:
+                                                    # github_keyword is a full url
+                                                    if "debug" in global_set["rules"]:
+                                                        print_with_time(f"AI đang tra cứu repo: {github_keyword}")
+                                                    file_name = f"files/git{generate_random_string(37)}"
+                                                    mime_type = "text/plain"
+                                                    with repo_to_json(github_keyword, output_json=None, token=None) as json_io:
+                                                        drop_file(driver, button, json_io, "application/json", link_to_filename(github_keyword) + ".json")
+                                                        bytesio_to_file(json_io, file_name)
+                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : True }, "sending_time" : get_day_and_time() })
+                                                except Exception as e:
+                                                    media_history.append({"message_type" : "error", "info" : f"Cannot access repo: {github_keyword}"})
+                                                    if "debug" in global_set["rules"]:
+                                                        print_with_time(f"Không thể truy cập repo: {github_keyword} - {e}")
                                             if is_only_whitespace(reply_msg):
                                                 reply_msg = "OK" + reply_msg
                                             print_with_time("* AI Trả lời:", reply_msg if "debug" in global_set["rules"] else "<1 tin nhắn>")

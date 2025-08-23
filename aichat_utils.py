@@ -63,6 +63,7 @@ You are playing role a real person or a character — not an AI or robot. Respon
         [genimg]http://localhost:8000/example0.jpg|prompt to generate or edit image[/genimg] (Generate an image from image by AI)
         [genimg]http://localhost:8000/example0.jpg|http://localhost:8000/example1.jpg|prompt to generate or edit image[/genimg] (Generate an image from images by AI, accept multiple link url)
     + To send the sexually explicit images, add one or more [adultimg]sexually explicit keywords or image description[/adultimg] into your text message
+    + When asked to analyze source code on a github repository, you must fetch the repository first. To fetch repository from GitHub, add one or more [github]https://github.com/owner/repo_name[/github] into your text message
     + To send music from itunes, add one or more [itunes]music name and singer name[/itunes] into your text message
     + Only send images when needed. Maximum 4 images can be sent.
     + These action tags in your text message will be automaticed convert into object json.
@@ -284,10 +285,10 @@ def download_file_to_path(file_link, path):
             if chunk:
                 f.write(chunk)
 
-def drop_file(driver, element, sample_bytesio, mimetype):
+def drop_file(driver, element, sample_bytesio, mimetype, filename=None):
     """Drop a BytesIO image into a web element using JavaScript"""
     base64_data = bytesio_to_base64(sample_bytesio)
-    filename = f"file{get_extension(mimetype)}" 
+    filename = f"file{get_extension(mimetype)}" if not filename else filename
     js_script = """
     async function dropBase64Image(base64Data, dropTarget, filename, mimetype, callback) {
         try {
@@ -513,3 +514,10 @@ def get_ram_usage():
     total_gb = mem.total / (1024 ** 3)
     # In ra định dạng: RAM: ĐÃ DÙNG / TỔNG
     return f"RAM: {used_gb:.1f} GB / {total_gb:.1f} GB"
+
+def link_to_filename(link: str) -> str:
+    link = re.sub(r'^https?://', '', link) # Remove HTTP/HTTPS
+    filename = link.split('?')[0] # Remove query parameters
+    filename = re.sub(r'[^0-9a-zA-Z]+', '_', link) # Replace non-alphanumeric characters with underscores
+    filename = filename.strip('_')
+    return filename
