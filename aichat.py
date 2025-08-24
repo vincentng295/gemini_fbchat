@@ -857,13 +857,16 @@ try:
                                         result.extend(file_result)
                                     return result
 
-                                def release_unload_files(chat_history, do_all = False):
+                                def release_unload_files(chat_history, do_all = False, setunload = False):
                                     result = []
                                     for msg in chat_history:
                                         if msg["message_type"] == "file" and (do_all or msg["info"].get("loaded", False) == False):
                                             try:
                                                 file_name = msg["info"]["file_name"]
                                                 client.files.delete(name=file_name)
+                                                if setunload:
+                                                    msg["info"]["loaded"] = False
+                                                    msg["info"].pop("last_state", None)
                                             except Exception:
                                                 pass
                                     
@@ -1946,6 +1949,10 @@ try:
                                                     if bye_msg:
                                                         send_keys_long_text(driver, button, bye_msg)
                                                         button.send_keys("\n")
+                                            if "unload_files" in bot_commands:
+                                                print_with_time("* Bot yêu cầu giải phóng bộ nhớ tệp")
+                                                chat_history_temp.append({"message_type" : "conversation_event", "info" : "You have deleted all files in this conversation"})
+                                                release_unload_files(chat_history_temp, True, True)
                                             try: # save the screenshot
                                                 os.makedirs("screenshot", exist_ok=True)
                                                 main.screenshot(f"screenshot/{message_id}.png")
