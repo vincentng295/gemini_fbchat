@@ -6,8 +6,8 @@ import io
 import chardet
 import re
 
-MAX_FILE_SIZE = 500_000   # 500 KB/file
-MAX_JSON_SIZE = 1_000_000 # 1 MB JSON
+MAX_FILE_SIZE = 100_000 # 100 KB per file
+MAX_JSON_SIZE = 600_000 # 600 KB total JSON
 
 def is_binary(content_bytes):
     if b'\0' in content_bytes:
