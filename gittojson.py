@@ -2,6 +2,7 @@ import os
 import json
 import zipfile
 import requests
+from requests.auth import HTTPBasicAuth
 import io
 import chardet
 import re
@@ -15,15 +16,26 @@ def is_binary(content_bytes):
     result = chardet.detect(content_bytes[:512])
     return result["encoding"] is None
 
-def get_default_branch(owner, repo, token=None):
+def get_default_branch(owner, repo, token=None, auth=None):
     url = f"https://api.github.com/repos/{owner}/{repo}"
     headers = {"Authorization": f"token {token}"} if token else {}
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, auth=auth)
     r.raise_for_status()
     return r.json().get("default_branch", "main")
 
 def make_download_url(owner, repo, branch, path):
     return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}"
+
+def parse_username_token(github_url):  
+    """
+    Parse GitHub URL to extract username and token if present.
+    Example: https://username:token@github.com/owner/repo/...
+    """
+    m = re.match(r"https://([^:/]+):([^@]+)@github\.com/.*", github_url)
+    if m:
+        username, token = m.groups()
+        return username, token
+    return None, None
 
 def parse_repo_branch(github_url):
     """
@@ -54,15 +66,21 @@ def parse_repo_branch(github_url):
 
 
 def repo_to_json(github_url, output_json=None, token=None):
+    auth = None
+    # Parse token from URL if not provided
+    if token is None:
+        # username, token (or password)
+        username, password = parse_username_token(github_url)
+        auth = HTTPBasicAuth(username, password)
     # Parse owner/repo/branch from URL
     owner, repo, branch = parse_repo_branch(github_url)
     if branch is None:
-        branch = get_default_branch(owner, repo, token)
+        branch = get_default_branch(owner, repo, token, auth)
 
     # download and process ZIP
-    zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
+    zip_url = f"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}"
     headers = {"Authorization": f"token {token}"} if token else {}
-    r = requests.get(zip_url, headers=headers)
+    r = requests.get(zip_url, headers=headers, auth=auth)
     r.raise_for_status()
 
     json_size_estimate = 0 # estimate total JSON size
