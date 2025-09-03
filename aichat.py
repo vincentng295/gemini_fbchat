@@ -410,7 +410,7 @@ try:
         print_with_time(e)
     chat_infos = pickle_from_file(f_chat_infos, {})
     def extract_names():
-        result = {"self", "admin"}
+        result = {"self", "admin"} # Nicknames that cannot be used
         for value in chat_infos.values():
             name = value.get("idname")
             if name is not None:
@@ -437,6 +437,7 @@ try:
     chat_infos[admin_fbid]["admin_settings"].setdefault("genai_visual", False)
     chat_infos[admin_fbid]["admin_settings"].setdefault("auto_friends", "friends" in work_jobs)
     chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
+    chat_infos[admin_fbid]["admin_settings"].setdefault("admin_chatid", admin_fbid)
 
     ai_prompt = None
 
@@ -688,7 +689,7 @@ try:
                         if in_cooldown:
                             continue
                         
-                        if (chat_infos[admin_fbid]["admin_settings"].get("aichat", True) == False or info.get("block", False) == True) and info.get("fbid", message_id) != admin_fbid:
+                        if (chat_infos[admin_fbid]["admin_settings"].get("aichat", True) == False or info.get("block", False) == True) and message_id != chat_infos[admin_fbid]["admin_settings"].get("admin_chatid"):
                             continue
                         chat_list.append(chat_info)
                     except Exception:
@@ -796,6 +797,8 @@ try:
                         # Remove cooldown
                         chat_infos[message_id].pop("cooldown", 0)
                         caption = chat_info.pop("caption", None)
+                        if facebook_id == admin_fbid: # Store admin chat id
+                            chat_infos[admin_fbid]["admin_settings"]["admin_chatid"] = message_id
 
                         while True:
                             try:
