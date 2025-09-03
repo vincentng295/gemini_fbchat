@@ -438,6 +438,7 @@ try:
     chat_infos[admin_fbid]["admin_settings"].setdefault("auto_friends", "friends" in work_jobs)
     chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
     chat_infos[admin_fbid]["admin_settings"].setdefault("admin_chatid", admin_fbid)
+    def get_admin(): return chat_infos[admin_fbid]["admin_settings"].get("admin_chatid", admin_fbid)
 
     ai_prompt = None
 
@@ -682,7 +683,7 @@ try:
                         
                         delay_rep_time = info.get("delaytime", None) is not None and (current_unix >= info.get("delaytime", current_unix))
                         
-                        if not delay_rep_time and len(new_chat_indicator) <= 0:
+                        if not delay_rep_time and len(new_chat_indicator) <= 0 and not info.get("execute_cmd", []) and not info.get("result_cmd", []):
                             continue
                         
                         in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
@@ -799,6 +800,9 @@ try:
                         caption = chat_info.pop("caption", None)
                         if facebook_id == admin_fbid: # Store admin chat id
                             chat_infos[admin_fbid]["admin_settings"]["admin_chatid"] = message_id
+                        # Execute commands if any
+                        commands = chat_infos[message_id].pop("execute_cmd", [])
+                        results = chat_infos[message_id].pop("result_cmd", [])
 
                         while True:
                             try:
@@ -1236,6 +1240,41 @@ try:
                                         'Tôi sẽ tiếp tục nói chuyện trong chat: {CHATID}'
                                     ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
 
+                                def trace_by_id(chatid, _1 = None):
+                                    """
+                                    Trace this chat whenever anyone sends message to bot,
+                                    bot will notify you.
+                                    /cmd trace <id/idname>
+                                    """
+                                    if chatid == None or chatid == "self":
+                                        chatid = message_id
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    chat_infos.setdefault(chatid, {})["traced"] = True
+                                    return TL([
+                                        'I will notify you when anyone sends message to me from chat: {CHATID}',
+                                        'Tôi sẽ thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ chat: {CHATID}'
+                                    ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
+
+                                def untrace_by_id(chatid, _1 = None):
+                                    """
+                                    Stop tracing this chat.
+                                    /cmd untrace <id/idname>
+                                    """
+                                    if chatid == None or chatid == "self":
+                                        chatid = message_id
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    chat_infos.setdefault(chatid, {})["traced"] = False
+                                    return TL([
+                                        'I will no longer notify you when anyone sends message to me from chat: {CHATID}',
+                                        'Tôi sẽ không còn thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ chat: {CHATID}'
+                                    ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
+
 
                                 def block_by_id(chatid, _1 = None):
                                     """
@@ -1616,6 +1655,8 @@ try:
                                     "lang" : set_lang,
                                     "genaivisual" : set_genai_visual,
                                     "groupchat" : set_groupchat_support,
+                                    "trace" : trace_by_id,
+                                    "untrace" : untrace_by_id,
                                 }
                                 
                                 func_noadmin = {
@@ -1651,13 +1692,6 @@ try:
                                     else:
                                         return f"Unknown command: {arg1}"
 
-                                if caption is None:
-                                    if len(chat_history_new) <= 0:
-                                        break
-                                    last_msg = chat_history_new[-1]
-                                    if last_msg["message_type"] == "your_text_message":
-                                        break
-
                                 for msg in chat_history_new:
                                     if msg["message_type"] == "text_message":
                                         if is_cmd(msg["info"]["msg"]):
@@ -1672,7 +1706,9 @@ try:
                                                     action(value)  # Calls reset_chat("0") or mute_chat("true"/"false")
                                                     if msg_text:
                                                         command_result.append(msg_text)
-
+                                for cmd in commands:
+                                    command_result.append(parse_and_execute(cmd))
+                                command_result.extend(results)
                                 try:
                                     actions.move_to_element(get_message_input()).click()\
                                        .key_down(Keys.CONTROL).send_keys("a").key_up(Keys.CONTROL)\
@@ -1694,16 +1730,19 @@ try:
                                 if should_stop:
                                     time.sleep(10)
                                     raise KeyboardInterrupt
-                                is_command_msg = last_msg["message_type"] == "text_message" and is_cmd(last_msg["info"]["msg"])
-                                is_file = last_msg["message_type"] == "file"
                                 if caption is None:
-                                    if is_command_msg:
+                                    if len(chat_history_new) <= 0:
+                                        break
+                                    last_msg = chat_history_new[-1]
+                                    if last_msg["message_type"] == "your_text_message":
+                                        break
+                                    if last_msg["message_type"] == "text_message" and is_cmd(last_msg["info"]["msg"]):
                                         break
                                     if should_not_chat:
                                         break
                                     if not genai_keys:
                                         break
-                                    if is_file and not delay_is_set:
+                                    if last_msg["message_type"] == "file" and not delay_is_set:
                                         # Wait user to send text message in 30s before process
                                         chat_infos[message_id]["delaytime"] = int(time.time()) + 30
                                         break
@@ -1750,8 +1789,17 @@ try:
                                     except Exception as e:
                                         print_with_time(f"Error summary: {e}")
 
+                                message_to_notify = ""
                                 chat_history_temp = chat_history.copy()
                                 chat_history_temp.extend(chat_history_new)
+                                # Record new messages to notify admin
+                                if chat_infos[message_id].get("traced", False) == True and facebook_id != admin_fbid:
+                                    for msg in chat_history_new:
+                                        if msg["message_type"] == "text_message":
+                                            message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]}\n'
+                                        elif msg["message_type"] == "file":
+                                            message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]} {msg["info"].get("file_name", "")}\n'
+
                                 for msg in reversed(chat_history_temp):
                                     if msg["message_type"] == "file":
                                         if msg["info"]["msg"] == "send video":
@@ -1962,6 +2010,24 @@ try:
                                             except Exception:
                                                 print_with_time("! Không thể lưu ảnh chụp màn hình")
                                             chat_history_temp.extend(chat_history_new)
+                                            # Record new messages to notify admin
+                                            if chat_infos[message_id].get("traced", False) == True and facebook_id != admin_fbid:
+                                                for msg in chat_history_new:
+                                                    if msg["message_type"] == "text_message":
+                                                        message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]}\n'
+                                                    elif msg["message_type"] == "file":
+                                                        message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]} {msg["info"].get("file_name", "")}\n'
+                                            if message_to_notify:
+                                                admin_chatid = get_admin()
+                                                chat_infos[admin_chatid].setdefault("result_cmd", []).append(TL([
+                                                        f"New message from {who_chatted} {message_id}:\n{message_to_notify}",
+                                                        f"Tin nhắn mới từ {who_chatted} {message_id}:\n{message_to_notify}"
+                                                    ])
+                                                )
+                                                chat_infos[admin_chatid].setdefault("result_cmd", []).append(f'Đã trả lời:\n{reply_msg}')
+                                                # Send screenshot if possible
+                                                chat_infos[admin_chatid].setdefault("execute_cmd", []).append(f"/cmd ss {message_id}")
+                                                message_to_notify = ""
                                             chat_history_temp.extend(media_history)
                                             chat_history_temp.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : original_msg}, "sending_time" : get_day_and_time() })
                                             chat_histories[message_id] = chat_history_temp
