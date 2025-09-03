@@ -1417,10 +1417,11 @@ try:
                                                 + (f"  IDNAME:{val.get('idname')}\n" if val.get('idname') is not None else "")
                                                 + f"  FBID:{val.get('fbid', key)}\n"
                                                 + f"  NAME:{val.get('name', 'Unknown')}\n"
-                                                + f"  CHAT:{val.get('chatable', True)}\n"
-                                                + f"  BLOCK:{val.get('block', False)}\n"
-                                                + f"  XXX:{val.get('xxx', chat_infos[admin_fbid]['admin_settings']['aichat_xxx'])}\n"
-                                                "\n"
+                                                + (f"  Traced\n" if val.get('traced', False) else "") # traced
+                                                + (f"  Muted\n" if not val.get('chatable', True) else "") # muted
+                                                + (f"  Blocked\n" if val.get('block', False) else "") # blocked
+                                                + (f"  Adult allowed\n" if val.get('xxx', chat_infos[admin_fbid]['admin_settings']['aichat_xxx']) else "") # adult content allowed
+                                                + "\n"
                                             )
                                         return pasterman(text)
                                     if name == "cookies":
