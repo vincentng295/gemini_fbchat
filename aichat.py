@@ -785,7 +785,7 @@ try:
                                 print_with_time(e)
                                 continue
 
-                        print_with_time(f"Tin nhắn mới từ {who_chatted} (ID: {facebook_id})")
+                        print_with_time(f"Tin nhắn mới từ {who_chatted} (ID: {message_id})")
                         if "debug" in global_set["rules"]:
                             print_with_time(json.dumps(facebook_info, ensure_ascii=False, indent=2))
                         set_structure(chat_infos, [message_id])
