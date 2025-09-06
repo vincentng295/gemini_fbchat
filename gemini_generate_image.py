@@ -49,7 +49,7 @@ def generate_image(client, prompt):
     feedback = None
     # Gọi API để tạo hình ảnh
     response = client.models.generate_content(
-        model="gemini-2.0-flash-preview-image-generation",
+        model="gemini-2.5-flash-image-preview",
         contents= prompt,
         config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"], safety_settings=[
                 SafetySetting(
