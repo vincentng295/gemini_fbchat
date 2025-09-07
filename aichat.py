@@ -438,6 +438,7 @@ try:
     chat_infos[admin_fbid]["admin_settings"].setdefault("auto_friends", "friends" in work_jobs)
     chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
     chat_infos[admin_fbid]["admin_settings"].setdefault("admin_chatid", admin_fbid)
+    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_memory", "")
     def get_admin(): return chat_infos[admin_fbid]["admin_settings"].get("admin_chatid", admin_fbid)
 
     ai_prompt = None
@@ -462,9 +463,31 @@ try:
             chat_infos[admin_fbid]["admin_settings"].setdefault("system_prompt", ai_prompt)
         ai_prompt = chat_infos[admin_fbid]["admin_settings"].get("system_prompt", ai_prompt)
         instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
+        current_memory = chat_infos[admin_fbid]["admin_settings"].get("aichat_memory", "")
+        if current_memory:
+            instruction.append(f"Your memory record is:\n{current_memory}")
         main_model_config = {
             "system_instruction": instruction
         }
+
+    def memory_updater_model(new_info):
+        current_memory = chat_infos[admin_fbid]["admin_settings"].get("aichat_memory", "")
+        if not current_memory:
+            current_memory = "No memory yet."
+        parts = [ current_memory, f"Update with: {new_info}"]
+        reponse = client.models.generate_content(
+            model=GENAI_MODEL,
+            contents=parts,
+            config = GenerateContentConfig(
+                system_instruction=[ get_devmode_prompt(), get_memory_updater_instructions() ],
+                safety_settings=safety_settings,
+                thinking_config=types.ThinkingConfig(thinking_budget=0), # No thinking
+            )
+        )
+        new_memory = reponse.text.strip()
+        if not new_memory: # Empty, raise to caller to handle
+            raise ValueError("Memory updater returned empty memory")
+        chat_infos[admin_fbid]["admin_settings"]["aichat_memory"] = new_memory
 
     fetch_instruction()
     load_instruction()
@@ -1451,6 +1474,15 @@ try:
                                     if name == "ram":
                                         # Return ram usage of host running bot
                                         return get_ram_usage()
+                                    if name == "memory":
+                                        # Return current memory of bot
+                                        memory = chat_infos[admin_fbid]["admin_settings"].get("aichat_memory", "")
+                                        if not memory:
+                                            return TL([
+                                                'No memory has been set',
+                                                'Chưa có bộ nhớ nào được đặt'
+                                            ])
+                                        return memory
                                     return f"Invalid argument: {name}"
 
                                 def terminate(_0 = None, _1 = None):
@@ -1605,6 +1637,18 @@ try:
                                             'Tôi sẽ không mô phỏng bất cứ thứ gì sau khi tạo hình ảnh bằng AI'
                                         ])
                                     return 'GenAI Camera Visual: {MODE}'.format(MODE = chat_infos[admin_fbid]["admin_settings"].get("genai_visual", False))
+                                
+                                def reset_memory(_0=None, _1=None):
+                                    """
+                                    Set memory for bot.
+                                    /cmd resetmemory
+                                    """
+                                    if "aichat_memory" in chat_infos[admin_fbid]["admin_settings"]:
+                                        chat_infos[admin_fbid]["admin_settings"]["aichat_memory"] = ""
+                                    return TL([
+                                        'Memory has been reset',
+                                        'Bộ nhớ đã được đặt lại'
+                                    ])
 
                                 def show_help(_0=None, _1=None):
                                     """
@@ -1658,6 +1702,7 @@ try:
                                     "groupchat" : set_groupchat_support,
                                     "trace" : trace_by_id,
                                     "untrace" : untrace_by_id,
+                                    "resetmemory" : reset_memory,
                                 }
                                 
                                 func_noadmin = {
@@ -1865,6 +1910,7 @@ try:
                                             reply_msg, gen_imgs = extract_keywords(r'\[genimg\](.*?)\[/genimg\]', reply_msg)
                                             reply_msg, itunes_keywords = extract_keywords(r'\[itunes\](.*?)\[/itunes\]', reply_msg)
                                             reply_msg, github_keywords = extract_keywords(r'\[github\](.*?)\[/github\]', reply_msg)
+                                            reply_msg, memory_keywords = extract_keywords(r'\[memory\](.*?)\[/memory\]', reply_msg)
                                             reply_msg, bot_commands = extract_keywords(r'\[cmd\](.*?)\[/cmd\]', reply_msg)
                                             
 
@@ -1991,6 +2037,18 @@ try:
                                             chat_history_new, files_mapping = process_elements(msg_table)
                                             # Press Enter to send message
                                             button.send_keys("\n")
+                                            memory_text = ""
+                                            for memory in memory_keywords:
+                                                if memory and len(memory.strip()) > 0:
+                                                    memory_text += memory.strip() + "\n"
+                                            if memory_text:
+                                                try:
+                                                    memory_updater_model(memory_text)
+                                                    print_with_time("* Đã cập nhật bộ nhớ")
+                                                    chat_history_temp.append({"message_type" : "conversation_event", "info" : "You have saved some memories in this conversation"})
+                                                except Exception as e:
+                                                    print_with_time(f"! Không thể cập nhật bộ nhớ: {e}")
+                                                    chat_history_temp.append({"message_type" : "error", "info" : f"Cannot update memory: {e}"})
                                             if "bye" in bot_commands:
                                                 print_with_time("* Bot yêu cầu dừng trả lời tin nhắn")
                                                 chat_history_temp.append({"message_type" : "conversation_event", "info" : "You have left the conversation"})
