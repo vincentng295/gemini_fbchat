@@ -1934,18 +1934,23 @@ try:
                                                         if "debug" in global_set["rules"]:
                                                             print_with_time(f"Không thể gửi ảnh: {img_keyword}")
                                             for gen_img in gen_imgs:
+                                                error_img = ""
                                                 gen_img_items = gen_img.split('|')
                                                 gen_img = gen_img_items.pop()
                                                 gen_img_prompt = [gen_img]
                                                 for link in gen_img_items:
                                                     try:
+                                                        if not link.startswith("http://") and not link.startswith("https://"):
+                                                            raise Exception(f"Invalid argument - not a link {link}")
                                                         image_io = download_file_to_bytesio(link)
                                                         image = Image.open(image_io)
                                                         gen_img_prompt.insert(0, image)
                                                     except Exception as e:
-                                                        #print_with_time(f"Lỗi: {e}")
+                                                        error_img += str(e) + "; "
                                                         continue
-                                                while True:
+                                                if error_img:
+                                                    media_history.append({"message_type" : "error", "info" : f"Cannot access image for genimg: {error_img}"})
+                                                while not error_img:
                                                     try:
                                                         images, texts, feedback = generate_image(genimg_client, gen_img_prompt)
                                                         chat_history_temp.append({
