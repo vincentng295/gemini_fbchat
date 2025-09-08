@@ -39,7 +39,6 @@ import re
 from gemini_generate_image import generate_image
 from google.genai.errors import ClientError, ServerError
 from image_upload import upload_to_catbox
-from image_visual import simulate_camera_effect_bytesio
 import nickname
 import inspect
 import logging
@@ -434,7 +433,6 @@ try:
     chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_lite", False)
     chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_xxx", False)
     chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_group", True)
-    chat_infos[admin_fbid]["admin_settings"].setdefault("genai_visual", False)
     chat_infos[admin_fbid]["admin_settings"].setdefault("auto_friends", "friends" in work_jobs)
     chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
     chat_infos[admin_fbid]["admin_settings"].setdefault("admin_chatid", admin_fbid)
@@ -1615,28 +1613,6 @@ try:
                                         return TL(["Invalid language to set", "Ngôn ngữ không hợp lệ"])
                                     chat_infos[admin_fbid]["admin_settings"]["lang"] = lang
                                     return TL(["Language has been set to English", "Ngôn ngữ đã đặt thành Tiếng Việt"])
-
-                                def set_genai_visual(mode, _1=None):
-                                    """
-                                    Simulates the visual artifacts of a real phone camera capturing an image,
-                                    in order to reduce the detectability of AI-generated images.
-                                    /cmd genaivisual [true|false]
-                                    """
-                                    if mode == None:
-                                        mode = ""
-                                    if mode.lower() == "true" or mode == "1":
-                                        chat_infos[admin_fbid]["admin_settings"]["genai_visual"] = True
-                                        return TL([
-                                            'I will simulate the visual phenomena of the camera for any AI generated image', 
-                                            'Tôi sẽ mô phỏng các hiện tượng thị giác của máy ảnh cho các ảnh tạo ảnh bằng AI'
-                                        ])
-                                    if mode.lower() == "false" or mode == "0":
-                                        chat_infos[admin_fbid]["admin_settings"]["genai_visual"] = False
-                                        return TL([
-                                            'I will not simulate anything after creating the image with AI', 
-                                            'Tôi sẽ không mô phỏng bất cứ thứ gì sau khi tạo hình ảnh bằng AI'
-                                        ])
-                                    return 'GenAI Camera Visual: {MODE}'.format(MODE = chat_infos[admin_fbid]["admin_settings"].get("genai_visual", False))
                                 
                                 def reset_memory(_0=None, _1=None):
                                     """
@@ -1698,7 +1674,6 @@ try:
                                     "autofr": set_autofriends,
                                     "help": show_help,
                                     "lang" : set_lang,
-                                    "genaivisual" : set_genai_visual,
                                     "groupchat" : set_groupchat_support,
                                     "trace" : trace_by_id,
                                     "untrace" : untrace_by_id,
@@ -1970,8 +1945,6 @@ try:
                                                         for image_io in images:
                                                             if "debug" in global_set["rules"]:
                                                                 print_with_time(f"AI gửi ảnh {gen_img} từ Gemini tạo ảnh")
-                                                            if chat_infos[admin_fbid]["admin_settings"].get("genai_visual", True):
-                                                                image_io = simulate_camera_effect_bytesio(image_io)
                                                             drop_image(driver, button, image_io)
                                                             file_name = f"files/{generate_random_string(40)}"
                                                             file_ext, mime_type = get_mine_type(image_io.name)
