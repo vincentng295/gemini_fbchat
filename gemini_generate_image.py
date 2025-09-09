@@ -43,13 +43,13 @@ prompt_feedback_to_dict(
 )
 """
 
-def generate_image(client, prompt):
+def generate_image_model(client, prompt, model):
     images = []
     texts = []
     feedback = None
     # Gọi API để tạo hình ảnh
     response = client.models.generate_content(
-        model="gemini-2.5-flash-image-preview",
+        model=model,
         contents= prompt,
         config=types.GenerateContentConfig(response_modalities=["TEXT", "IMAGE"], safety_settings=[
                 SafetySetting(
@@ -103,6 +103,12 @@ def generate_image(client, prompt):
     if response.prompt_feedback:
         feedback = prompt_feedback_to_dict(response.prompt_feedback)
     return images, texts, feedback
+
+def generate_image(client, prompt):
+    try:
+        generate_image_model(client, prompt, "gemini-2.5-flash-image-preview")
+    except Exception: # If the first model fails, try the second one
+        return generate_image_model(client, prompt, "gemini-2.0-flash-preview-image-generation")
 
 """
 from google import genai
