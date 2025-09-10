@@ -1784,7 +1784,7 @@ try:
 
                                 max_lines = 75
                                 summary_lines = 25
-                                left_lines = max_lines - summary_lines
+                                left_lines = len(chat_history) - summary_lines
                                 if len(chat_history) > max_lines:
                                     try:
                                         # Summary old 100 messages
