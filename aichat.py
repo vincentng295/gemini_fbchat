@@ -36,7 +36,7 @@ from google.genai import types # Needed for multimodal content like images
 from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState, GoogleSearch, Tool, HttpOptions
 import traceback
 import re
-from gemini_generate_image import generate_image
+from gemini_generate_image import generate_image, prompt_feedback_to_dict
 from google.genai.errors import ClientError, ServerError
 from image_upload import upload_to_catbox
 import nickname
@@ -886,7 +886,6 @@ try:
                                     return result
 
                                 def release_unload_files(chat_history, do_all = False, setunload = False):
-                                    result = []
                                     for msg in chat_history:
                                         if msg["message_type"] == "file" and (do_all or msg["info"].get("loaded", False) == False):
                                             try:
@@ -1801,10 +1800,13 @@ try:
                                                     msg["info"]["loaded"] = __num_file <= max_file  # Compare after incrementing
                                         prompt_to_summary = process_chat_history(chat_history[:summary_lines])
                                         response = summary_generate_content(prompt_to_summary)
-                                        release_unload_files(chat_history[:summary_lines], True)
                                         summary = response.text
-                                        if summary is None:
-                                            raise Exception("Error summary")
+                                        if summary is None: # Why not generated?
+                                            feedback = None
+                                            if response.prompt_feedback:
+                                                feedback = prompt_feedback_to_dict(response.prompt_feedback)
+                                            raise Exception(f"Empty summary, feedback: {feedback}")
+                                        release_unload_files(chat_history[:summary_lines], True)
                                         del chat_history[:-left_lines]
                                         chat_history.insert(0, {"message_type" : "summary_old_chat", "info" : summary})
                                     except Exception as e:
