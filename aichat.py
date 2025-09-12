@@ -375,8 +375,6 @@ try:
                 system_instruction=main_model_config["system_instruction"],
                 safety_settings=safety_settings,
                 response_mime_type="application/json",
-                # Cannot use tools when using Gemini 2.5 Flash with json response_mime_type
-                #tools=[google_search_tool],
             )
         )
 
@@ -388,6 +386,18 @@ try:
                 system_instruction=[ get_devmode_prompt(), "You are a summary model. When I give a prompt, your output must be a summary of the chat conversation, including all previous summaries and important context. Do not include quoted sentences, markdown, or formatting. The summary should be in English, direct, and retain essential details for future reference." ],
                 safety_settings=safety_settings,
                 thinking_config=types.ThinkingConfig(thinking_budget=0), # No thinking
+            )
+        )
+
+    def search_generate_content(parts):
+        return client.models.generate_content(
+            model=GENAI_MODEL,
+            contents=parts,
+            config = GenerateContentConfig(
+                system_instruction=[ get_devmode_prompt(), "You are a Google search agent: run live Google searches for every query and return the information directly with no preamble and no Markdown. Always include the search queries used, authoritative source citations with URLs, and any uncertainty or conflicts; never fabricate." ],
+                safety_settings=safety_settings,
+                thinking_config=types.ThinkingConfig(thinking_budget=0), # No thinking
+                tools=[google_search_tool],
             )
         )
 
@@ -1846,11 +1856,12 @@ try:
                                     if not chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False):
                                         prompt_list[:0] = self_image_prompt
                                     exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}}, indent = 4, ensure_ascii=False)
-                                    prompt_list.append(f">> Generate a response in properly formatted JSON to reply back to user. You are not allowed to say or imply that you're checking, searching, loading, waiting, or unsure in any way. Forbidden phrases include but are not limited to: “Wait a minute,” “Looking for it,” “Take it easy,” “I’m looking it up,” “Let me check,” or any variation of waiting, looking, or checking. When you receive a question, you must respond immediately as if you already know the information. Do not appear to be processing or delaying. Do not repeat what you already asked or said again!\nExample:\n{exam}\n")
+                                    prompt_list.append(f">> Generate a response in properly formatted JSON to reply back to user. Unless you are searching with [search] tool, you are not allowed to say or imply that you're checking, searching, loading, waiting.\nExample:\n{exam}\n")
                                     return prompt_list
                                 prompt_list = build_prompt(chat_history_temp)
                                 
                                 for _x in range(10):
+                                    talk_again = False
                                     try:
                                         button = get_message_input()
                                         if button is None:
@@ -1888,6 +1899,7 @@ try:
                                             reply_msg, itunes_keywords = extract_keywords(r'\[itunes\](.*?)\[/itunes\]', reply_msg)
                                             reply_msg, github_keywords = extract_keywords(r'\[github\](.*?)\[/github\]', reply_msg)
                                             reply_msg, memory_keywords = extract_keywords(r'\[memory\](.*?)\[/memory\]', reply_msg)
+                                            reply_msg, search_keywords = extract_keywords(r'\[search\](.*?)\[/search\]', reply_msg)
                                             reply_msg, bot_commands = extract_keywords(r'\[cmd\](.*?)\[/cmd\]', reply_msg)
                                             
 
@@ -2005,6 +2017,23 @@ try:
                                                     media_history.append({"message_type" : "error", "info" : f"Cannot access repo: {github_keyword}"})
                                                     if "debug" in global_set["rules"]:
                                                         print_with_time(f"Không thể truy cập repo: {github_keyword} - {e}")
+                                            for search_keyword in search_keywords:
+                                                try:
+                                                    if "debug" in global_set["rules"]:
+                                                        print_with_time(f"AI đang tìm kiếm: {search_keyword}")
+                                                    search_reponse = search_generate_content(search_keyword)
+                                                    if not search_reponse.text:
+                                                        feedback = None
+                                                        if response.prompt_feedback:
+                                                            feedback = prompt_feedback_to_dict(response.prompt_feedback)
+                                                        raise Exception(f"Empty reponse, feedback {feedback}")
+                                                    media_history.append({"message_type" : "search_engine", "info" : search_reponse.text})
+                                                except Exception as e:
+                                                    media_history.append({"message_type" : "error", "info" : f"Cannot search: {search_keyword}. Reason: {e}"})
+                                                    if "debug" in global_set["rules"]:
+                                                        print_with_time(f"Không thể tìm kiếm: {search_keyword} - {e}")
+                                            if search_keywords:
+                                                talk_again = True
                                             if is_only_whitespace(reply_msg):
                                                 reply_msg = "OK" + reply_msg
                                             print_with_time("* AI Trả lời:", reply_msg if "debug" in global_set["rules"] else "<1 tin nhắn>")
@@ -2082,7 +2111,12 @@ try:
                                                 del file_object, file_data
                                             del files_mapping
                                             if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
-                                        break
+                                        if not talk_again:
+                                            break
+                                        talk_again = False
+                                        caption = None
+                                        prompt_list = build_prompt(chat_history_temp)
+                                        continue
                                     except NoSuchElementException:
                                         print_with_time("Không thể trả lời")
                                         break
