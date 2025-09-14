@@ -50,6 +50,7 @@ LOGGER.setLevel(logging.WARNING)
 
 MESSENGER_HOME_PAGE = "/messages/t/_"
 GENAI_MODEL = "gemini-2.5-flash"
+GENAI_MODEL_2 = "gemini-2.5-flash-lite"
 
 def is_only_whitespace(s):
     return all(
@@ -380,7 +381,7 @@ try:
 
     def summary_generate_content(parts):
         return client.models.generate_content(
-            model=GENAI_MODEL,
+            model=GENAI_MODEL_2,
             contents=parts,
             config = GenerateContentConfig(
                 system_instruction=[ get_devmode_prompt(), "You are a summary model. When I give a prompt, your output must be a summary of the chat conversation, including all previous summaries and important context. Do not include quoted sentences, markdown, or formatting. The summary should be in English, direct, and retain essential details for future reference." ],
@@ -391,7 +392,7 @@ try:
 
     def search_generate_content(parts):
         return client.models.generate_content(
-            model=GENAI_MODEL,
+            model=GENAI_MODEL_2,
             contents=parts,
             config = GenerateContentConfig(
                 system_instruction=[ get_devmode_prompt(), "You are a Google search agent: run live Google searches for every query and return the information directly with no preamble and no Markdown. Always include the search queries used, authoritative source citations with URLs, and any uncertainty or conflicts; never fabricate." ],
