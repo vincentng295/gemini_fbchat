@@ -2141,10 +2141,11 @@ try:
                                         print_with_time("Không thể trả lời")
                                         break
                                     except (ClientError, ServerError) as e:
+                                        print_with_time(e)
                                         if pop_key_for_genai(): # Switch key if possible
                                             print_with_time(f"Lỗi ClientError/ServerError từ Gemini, thử lại với khóa khác")
-                                            checkib(chat_info["id"], None) # Update ib status
-                                        print_with_time(e)
+                                            prompt_list = build_prompt(chat_history_temp)
+                                            continue
                                         break
                                     except JSON5DecodeError as e:
                                         caption = None
