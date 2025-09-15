@@ -897,16 +897,19 @@ try:
                                     return result
 
                                 def release_unload_files(chat_history, do_all = False, setunload = False):
+                                    info_unload = []
                                     for msg in chat_history:
                                         if msg["message_type"] == "file" and (do_all or msg["info"].get("loaded", False) == False):
                                             try:
                                                 file_name = msg["info"]["file_name"]
                                                 client.files.delete(name=file_name)
+                                                info_unload.append(msg)
                                                 if setunload:
                                                     msg["info"]["loaded"] = False
                                                     msg["info"].pop("last_state", None)
                                             except Exception:
                                                 pass
+                                    return info_unload
                                     
                                 chat_history = chat_histories.get(message_id, [])
                                 old_chat_history = chat_histories.get(facebook_id, []) if message_id != facebook_id else []
@@ -926,9 +929,7 @@ try:
                                 should_stop = False
                                 should_not_chat = chat_infos.get(message_id, {}).get("chatable", True) == False or chat_infos.get(facebook_id, {}).get("chatable", True) == False
                                 max_video = 10
-                                num_video = 0
                                 max_file = 10
-                                num_file = 0
                                 regex_rules_applied = global_set["rules"].get(f"{facebook_id}_rules", "")
                                 regex_rules_applied = regex_rules_applied.split() if regex_rules_applied else []
                                 reset_regex_list = { global_set["reset_regex"] : global_set["reset_msg"] }
@@ -1088,7 +1089,7 @@ try:
                                             if check_supported_file(mime_type):
                                                 file_name = f"files/{generate_random_string(40)}"
                                                 files_mapping[file_name] = ("url", file_url)
-                                                chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type, "url" : None, "loaded" : False }, "reading_time" : reading_time})
+                                                chat_history_new.insert(0, {"message_type" : "file", "info" : {"name" : name, "msg" : "send file", "file_name" : file_name, "display_name" : file_down_name, "mime_type" : mime_type, "url" : None, "loaded" : False }, "reading_time" : reading_time})
                                             continue
                                         except Exception:
                                             pass
@@ -1817,7 +1818,9 @@ try:
                                             if response.prompt_feedback:
                                                 feedback = prompt_feedback_to_dict(response.prompt_feedback)
                                             raise Exception(f"Empty summary, feedback: {feedback}")
-                                        release_unload_files(chat_history[:summary_lines], True)
+                                        old_files = release_unload_files(chat_history[:summary_lines], True, True)
+                                        chat_infos[message_id].setdefault("saved_msg", []).extend(old_files)
+                                        chat_infos[message_id]["saved_msg"] = chat_infos[message_id]["saved_msg"][-100:]
                                         del chat_history[:-left_lines]
                                         chat_history.insert(0, {"message_type" : "summary_old_chat", "info" : summary})
                                     except Exception as e:
@@ -1834,16 +1837,24 @@ try:
                                         elif msg["message_type"] == "file":
                                             message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]} {msg["info"].get("file_name", "")}\n'
 
-                                for msg in reversed(chat_history_temp):
-                                    if msg["message_type"] == "file":
-                                        if msg["info"]["msg"] == "send video":
-                                            num_video += 1  # Increment first
-                                            msg["info"]["loaded"] = num_video <= max_video  # Compare after incrementing
-                                        elif msg["info"]["msg"] == "send file":
-                                            num_file += 1  # Increment first
-                                            msg["info"]["loaded"] = num_file <= max_file  # Compare after incrementing
                                 def build_prompt(chat_history):
-                                    prompt_list = [f'The Messenger conversation with "{who_chatted}" is as json here:']
+                                    num_file = 0
+                                    num_video = 0
+                                    for msg in reversed(chat_history):
+                                        if msg["message_type"] == "file":
+                                            if msg["info"]["msg"] == "send video":
+                                                num_video += 1  # Increment first
+                                                msg["info"]["loaded"] = num_video <= max_video  # Compare after incrementing
+                                            elif msg["info"]["msg"] == "send file":
+                                                num_file += 1  # Increment first
+                                                msg["info"]["loaded"] = num_file <= max_file  # Compare after incrementing
+                                    prompt_list = []
+                                    # saved msg
+                                    if chat_infos[message_id].setdefault("saved_msg", []):
+                                        prompt_list.append(f"The 100 newest files in this conversation have been archived:")
+                                        prompt_list.extend(process_chat_history(chat_infos[message_id].setdefault("saved_msg", [])))
+                                    # current history
+                                    prompt_list.append(f'The Messenger conversation with "{who_chatted}" is as json here:')
                                     prompt_list.extend(process_chat_history(chat_history))
                                     if chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False):
                                         prompt_list = [item for item in prompt_list if isinstance(item, str)]
@@ -1901,6 +1912,7 @@ try:
                                             reply_msg, github_keywords = extract_keywords(r'\[github\](.*?)\[/github\]', reply_msg)
                                             reply_msg, memory_keywords = extract_keywords(r'\[memory\](.*?)\[/memory\]', reply_msg)
                                             reply_msg, search_keywords = extract_keywords(r'\[search\](.*?)\[/search\]', reply_msg)
+                                            reply_msg, load_keywords = extract_keywords(r'\[load\](.*?)\[/load\]', reply_msg)
                                             reply_msg, bot_commands = extract_keywords(r'\[cmd\](.*?)\[/cmd\]', reply_msg)
                                             
 
@@ -1908,11 +1920,8 @@ try:
                                                 for img_keyword in img_keywords:
                                                     try:
                                                         for _x in range(5):
-                                                            try:
-                                                                image_link = img_keyword if adult == "link" else get_random_image_link(img_keyword, 30, adult)
-                                                                image_io = download_file_to_bytesio(image_link)
-                                                            except Exception:
-                                                                continue
+                                                            image_link = img_keyword if adult == "link" else get_random_image_link(img_keyword, 30, adult)
+                                                            image_io = download_file_to_bytesio(image_link)
                                                             if "debug" in global_set["rules"]:
                                                                 print_with_time(f"AI gửi ảnh {img_keyword} từ: {image_link}")
                                                             drop_image(driver, button, image_io)
@@ -2033,7 +2042,17 @@ try:
                                                     media_history.append({"message_type" : "error", "info" : f"Cannot search: {search_keyword}. Reason: {e}"})
                                                     if "debug" in global_set["rules"]:
                                                         print_with_time(f"Không thể tìm kiếm: {search_keyword} - {e}")
-                                            if search_keywords:
+                                            if load_keywords:
+                                                files_exist = False
+                                                for file in chat_infos[message_id].setdefault("saved_msg", []):
+                                                    if file["message_type"] == "file" and file["info"]["file_name"] in load_keywords:
+                                                        file["info"]["loaded"] = True
+                                                        media_history.append(file)
+                                                        files_exist = True
+                                                if not files_exist:
+                                                    media_history.append({"message_type" : "error", "info" : f"The requested files do not exist in this chat"})
+
+                                            if search_keywords or load_keywords:
                                                 talk_again = True
                                             if is_only_whitespace(reply_msg):
                                                 reply_msg = "OK" + reply_msg
