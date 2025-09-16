@@ -2022,7 +2022,7 @@ try:
                                                     with repo_to_json(github_keyword, output_json=None, token=None) as json_io:
                                                         drop_file(driver, button, json_io, "application/json", link_to_filename(github_keyword) + ".json")
                                                         bytesio_to_file(json_io, file_name)
-                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : True }, "sending_time" : get_day_and_time() })
+                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : True, "git_url" : github_keyword, "display_name" : link_to_filename(github_keyword) + ".json" }, "sending_time" : get_day_and_time() })
                                                 except Exception as e:
                                                     media_history.append({"message_type" : "error", "info" : f"Cannot access repo: {github_keyword}"})
                                                     if "debug" in global_set["rules"]:
