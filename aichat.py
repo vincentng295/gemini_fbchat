@@ -910,7 +910,17 @@ try:
                                             except Exception:
                                                 pass
                                     return info_unload
-                                    
+
+                                def unload_ondemand_files(chat_history):
+                                    names = []
+                                    for msg in chat_history:
+                                        if msg["message_type"] == "file" and \
+                                            msg["info"].get("retrieve_on_demand", False) and \
+                                            msg["info"].get("loaded", False):
+                                            msg["info"]["loaded"] = False
+                                            names.append(msg["info"]["file_name"])
+                                    return names
+                                
                                 chat_history = chat_histories.get(message_id, [])
                                 old_chat_history = chat_histories.get(facebook_id, []) if message_id != facebook_id else []
                                 # The conversation might have been upgraded to end-to-end encryption
@@ -1827,6 +1837,9 @@ try:
                                         print_with_time(f"Error summary: {e}")
 
                                 message_to_notify = ""
+                                list_unloaded = unload_ondemand_files(chat_history)
+                                if list_unloaded:
+                                    chat_history.append({"message_type" : "event", "info" : f"Unloaded due to retrieve_on_demand flag: {list_unloaded}"})
                                 chat_history_temp = chat_history.copy()
                                 chat_history_temp.extend(chat_history_new)
                                 # Record new messages to notify admin
@@ -1847,7 +1860,8 @@ try:
                                                 msg["info"]["loaded"] = num_video <= max_video  # Compare after incrementing
                                             elif msg["info"]["msg"] == "send file":
                                                 num_file += 1  # Increment first
-                                                msg["info"]["loaded"] = num_file <= max_file  # Compare after incrementing
+                                                if not msg["info"].get("retrieve_on_demand", False):
+                                                    msg["info"]["loaded"] = num_file <= max_file  # Compare after incrementing
                                     prompt_list = []
                                     # saved msg
                                     if chat_infos[message_id].setdefault("saved_msg", []):
@@ -2022,7 +2036,7 @@ try:
                                                     with repo_to_json(github_keyword, output_json=None, token=None) as json_io:
                                                         drop_file(driver, button, json_io, "application/json", link_to_filename(github_keyword) + ".json")
                                                         bytesio_to_file(json_io, file_name)
-                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : True, "git_url" : github_keyword, "display_name" : link_to_filename(github_keyword) + ".json" }, "sending_time" : get_day_and_time() })
+                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : False, "retrieve_on_demand" : True, "git_url" : github_keyword, "display_name" : link_to_filename(github_keyword) + ".json" }, "sending_time" : get_day_and_time() })
                                                 except Exception as e:
                                                     media_history.append({"message_type" : "error", "info" : f"Cannot access repo: {github_keyword}"})
                                                     if "debug" in global_set["rules"]:
@@ -2044,13 +2058,25 @@ try:
                                                         print_with_time(f"Không thể tìm kiếm: {search_keyword} - {e}")
                                             if load_keywords:
                                                 files_exist = False
-                                                for file in chat_infos[message_id].setdefault("saved_msg", []):
-                                                    if file["message_type"] == "file" and file["info"]["file_name"] in load_keywords:
-                                                        file["info"]["loaded"] = True
-                                                        media_history.append(file)
+                                                # call archived files
+                                                for msg in chat_infos[message_id].setdefault("saved_msg", []):
+                                                    if msg["message_type"] == "file" and msg["info"]["file_name"] in load_keywords:
+                                                        msg["info"]["loaded"] = True
+                                                        chat_infos[message_id]["saved_msg"].remove(msg)
+                                                        load_keywords.remove(msg["info"]["file_name"])
+                                                        media_history.append(msg)
+                                                        files_exist = True
+                                                # recall unload file in history
+                                                for msg in chat_history_temp:
+                                                    if msg["message_type"] == "file" and msg["info"]["file_name"] in load_keywords:
+                                                        msg["info"]["loaded"] = False
+                                                        _copy = copy.deepcopy(msg)
+                                                        _copy["info"]["loaded"] = True
+                                                        load_keywords.remove(msg["info"]["file_name"])
+                                                        media_history.append(_copy)
                                                         files_exist = True
                                                 if not files_exist:
-                                                    media_history.append({"message_type" : "error", "info" : f"The requested files do not exist in this chat"})
+                                                    media_history.append({"message_type" : "error", "info" : f"The requested files do not exist in this chat: {load_keywords}"})
 
                                             if search_keywords or load_keywords:
                                                 talk_again = True
