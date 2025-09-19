@@ -419,6 +419,9 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
             if alt_account <= len(ids):
                 set_facebook_id(driver, c_user, ids[alt_account -1])
                 print(f"Đã chuyển sang: {ids[alt_account -1]}")
+        elif isinstance(alt_account, str) and alt_account != "0":
+            set_facebook_id(driver, c_user, alt_account)
+            print(f"Đã chuyển sang: {alt_account}")
 
         driver.get("https://www.facebook.com/profile.php")
 

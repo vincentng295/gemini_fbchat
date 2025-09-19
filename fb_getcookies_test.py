@@ -80,11 +80,12 @@ c_user = login_info.get("c_user", None)
 i_user = login_info.get("i_user", None)
 otp_secret = login_info.get("otp_secret", "")
 alt_account = login_info.get("alt_account", "0")
+facebook_uid = login_info.get("facebook_uid", "0")
 
-if alt_account == None or alt_account == "":
-    alt_account = 0
+if facebook_uid and facebook_uid != "0":
+    alt_account = facebook_uid
 else:
-    alt_account = int(alt_account)
+    alt_account = int(alt_account) if alt_account else 0
 
 filename = "cookies.json"
 bakfilename = "cookies_bak.json"

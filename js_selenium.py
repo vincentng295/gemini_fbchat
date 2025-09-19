@@ -50,28 +50,67 @@ def inject_my_stealth_script(driver):
 
 def get_profile_switcher_ids(driver):
     # --- Inject JS to extract profile IDs ---
-    script = """
-    const scripts = document.querySelectorAll('script[type="application/json"]');
-    const profileSwitcherProfiles = [];
+    script = r"""
+function findFirstViewerActorId(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  if (obj.viewer && obj.viewer.actor && obj.viewer.actor.id) {
+    return obj.viewer.actor.id;
+  }
+  for (const key in obj) {
+    const val = obj[key];
+    if (val && typeof val === "object") {
+      const found = findFirstViewerActorId(val);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
-    scripts.forEach((script) => {
-      try {
-        const json = JSON.parse(script.textContent);
-
-        const nodes =
-          json?.require?.[0]?.[3]?.[0]?.__bbox?.require?.[0]?.[3]?.[1]?.__bbox
-            ?.result?.data?.viewer?.actor?.profile_switcher_eligible_profiles
-            ?.nodes;
-
-        if (nodes && Array.isArray(nodes)) {
-          profileSwitcherProfiles.push(...nodes.map(n => n.profile.id));
-        }
-      } catch (e) {
-        // skip errors
-      }
+function findProfileSwitcherIds(obj, results = []) {
+  if (!obj || typeof obj !== "object") return results;
+  const ps = obj.profile_switcher_eligible_profiles;
+  if (ps && Array.isArray(ps.nodes)) {
+    ps.nodes.forEach(n => {
+      const id = n && n.profile && n.profile.id;
+      if (id) results.push(id);
     });
+  }
+  for (const key in obj) {
+    const val = obj[key];
+    if (val && typeof val === "object") {
+      findProfileSwitcherIds(val, results);
+    }
+  }
+  return results;
+}
 
-    return profileSwitcherProfiles;
+const scripts = document.querySelectorAll('script[type="application/json"]');
+let mainUid = null;
+const profileSwitcherProfiles = [];
+
+scripts.forEach((script) => {
+  try {
+    const json = JSON.parse(script.textContent);
+    if (!mainUid) {
+      mainUid = findFirstViewerActorId(json);
+    }
+    profileSwitcherProfiles.push(...findProfileSwitcherIds(json));
+  } catch (e) {
+    // skip invalid JSON
+  }
+});
+
+const ordered = [];
+if (mainUid) ordered.push(mainUid);
+profileSwitcherProfiles.forEach(id => {
+  if (id && id !== mainUid) ordered.push(id);
+});
+
+const numericOnly = ordered.filter(id => typeof id === "string" && /^\d+$/.test(id));
+
+const uniqueProfiles = [...new Set(numericOnly)];
+
+return uniqueProfiles;
     """
 
     # --- Execute script and get the result ---
