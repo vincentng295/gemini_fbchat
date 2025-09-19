@@ -402,6 +402,17 @@ try:
             )
         )
 
+    def github_summary_content(parts):
+        return client.models.generate_content(
+            model=GENAI_MODEL_2,
+            contents=parts,
+            config = GenerateContentConfig(
+                system_instruction=[ get_devmode_prompt(), get_github_summary_instruction() ],
+                safety_settings=safety_settings,
+                thinking_config=types.ThinkingConfig(thinking_budget=0), # No thinking
+            )
+        )
+
     # Facebook info
     f_facebook_infos = "facebook_infos.bin"
     try:
@@ -2036,7 +2047,12 @@ try:
                                                     with repo_to_json(github_keyword, output_json=None, token=None) as json_io:
                                                         drop_file(driver, button, json_io, "application/json", link_to_filename(github_keyword) + ".json")
                                                         bytesio_to_file(json_io, file_name)
-                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : False, "retrieve_on_demand" : True, "git_url" : github_keyword, "display_name" : link_to_filename(github_keyword) + ".json" }, "sending_time" : get_day_and_time() })
+                                                    git_summary = None
+                                                    try:
+                                                        file_upload = client.files.upload(file = file_name, config = UploadFileConfig(mime_type=mime_type,name=file_name))
+                                                        git_summary = github_summary_content([file_upload, github_keyword]).text
+                                                    except Exception: pass
+                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : False, "retrieve_on_demand" : True, "git_url" : github_keyword, "display_name" : link_to_filename(github_keyword) + ".json", "summary" : git_summary }, "sending_time" : get_day_and_time() })
                                                 except Exception as e:
                                                     media_history.append({"message_type" : "error", "info" : f"Cannot access repo: {github_keyword}"})
                                                     if "debug" in global_set["rules"]:
@@ -2076,7 +2092,7 @@ try:
                                                         media_history.append(_copy)
                                                         files_exist = True
                                                 if not files_exist:
-                                                    media_history.append({"message_type" : "error", "info" : f"The requested files do not exist in this chat: {load_keywords}"})
+                                                    media_history.append({"message_type" : "error", "info" : f"Cannot load reload these files as it is not existing in this chat or file name has been changed: {load_keywords}"})
 
                                             if search_keywords or load_keywords:
                                                 talk_again = True
@@ -2142,8 +2158,8 @@ try:
                                                 # Send screenshot if possible
                                                 chat_infos[admin_chatid].setdefault("execute_cmd", []).append(f"/cmd ss {message_id}")
                                                 message_to_notify = ""
-                                            chat_history_temp.extend(media_history)
                                             chat_history_temp.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : original_msg}, "sending_time" : get_day_and_time() })
+                                            chat_history_temp.extend(media_history)
                                             chat_histories[message_id] = chat_history_temp
                                             for file_name, file_info in files_mapping.items():
                                                 info_type = file_info[0]

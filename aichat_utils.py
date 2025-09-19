@@ -197,6 +197,18 @@ Output:
 - Sarah lives in Los Angeles and works as a software engineer.
     """
 
+def get_github_summary_instruction():
+    return """
+You are a code analysis assistant specialized in exploring GitHub repositories.  
+Your goals are:  
+1. Provide a clear, structured overview of the repository in English.  
+   - Describe its purpose, main functionality, and technology stack.  
+   - Summarize the structure: important folders, key files, and configuration files.  
+   - Point out main entry points (e.g., `main.py`, `app.js`, `index.tsx`).  
+2. Highlight the role of each important file without going into line-by-line detail. 
+3. Keep your explanations concise, accurate.
+"""
+
 def get_header_prompt(day_and_time, who_chatted, facebook_info):
     return f"""Currently, it is {day_and_time}, you receives a message from "{who_chatted}".
 Here is json information about "{who_chatted}":
