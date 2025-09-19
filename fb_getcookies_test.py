@@ -1,4 +1,4 @@
-from fb_getcookies import get_fb_cookies, check_cookies, parse_cookies, get_facebook_all_id_from_cookies
+from fb_getcookies import get_fb_cookies, check_cookies, parse_cookies, get_facebook_all_id_from_cookies, delete_cookie
 import os
 import sys
 import json
@@ -123,10 +123,18 @@ except Exception as e:
 
 print("Kiểm tra cookies")
 ret_cookies, cookies = check_cookies(filename)
+if ret_cookies == -2:
+    print("UID không hợp lệ, sử dụng tài khoản chính")
+    delete_cookie(cookies, "i_user")
+    ret_cookies, cookies = check_cookies(filename)
 if c_user is None:
     c_user, i_user = get_facebook_all_id_from_cookies(cookies)
 print("Kiểm tra cookies dự phòng")
 ret_bakcookies, bakcookies = check_cookies(bakfilename)
+if ret_bakcookies == -2:
+    print("UID không hợp lệ, sử dụng tài khoản chính")
+    delete_cookie(bakcookies, "i_user")
+    ret_bakcookies, bakcookies = check_cookies(bakfilename)
 
 if ret_cookies == -1 or ret_bakcookies == -1:
     print("Tài khoản đã bị khóa")

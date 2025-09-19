@@ -230,6 +230,8 @@ def check_cookies_(cookies):
             return 0
         if path.startswith("/checkpoint/"):
             return -1
+        if path == "/forced_account_switch":
+            return -2
         print("Đăng nhập thành công:", current_url)
     except Exception as e:
         print(f"Error: {e}")
@@ -433,18 +435,18 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         if finally_stop:
             input("<< Nhấn Enter để tiếp tục >>")
         cookies = driver.get_cookies()
-        _url = base_url_with_path(driver.current_url)
-        if _url == "www.facebook.com" or _url == "www.facebook.com/login":
-            print(f"Đăng nhập thất bại [{_url}]")
-            return 0, None
-        print(f"{hide_email(username)}: Đăng nhập thành công [{driver.current_url}]")
     except Exception as e:
         print(f"Error: {e}")
         return 0, None
     finally:
         driver.quit()
         
-    return 1, cookies
+    ret_cookies = check_cookies_(cookies)
+    if ret_cookies == -2:
+        print("UID không hợp lệ, sử dụng tài khoản chính")
+        delete_cookie(cookies, "i_user")
+        ret_cookies = check_cookies_(cookies)
+    return ret_cookies, cookies
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')
