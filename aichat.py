@@ -1176,6 +1176,7 @@ try:
                                     if title == None:
                                         title = "New chat"
                                     chat_histories[chatid] = [{"message_type" : "new_chat", "info" : title}]
+                                    chat_infos[chatid]["saved_msg"] = []
                                     return TL([
                                         'I will forget everything in chat: {CHATID}',
                                         'Tôi sẽ quên mọi thứ trong chat: {CHATID}'
@@ -1834,14 +1835,17 @@ try:
                                         prompt_to_summary = process_chat_history(chat_history[:summary_lines])
                                         response = summary_generate_content(prompt_to_summary)
                                         summary = response.text
+                                        old_files = release_unload_files(chat_history[:summary_lines], True, True)
+                                        chat_infos[message_id].setdefault("saved_msg", []).extend(old_files)
+                                        chat_infos[message_id]["saved_msg"] = chat_infos[message_id]["saved_msg"][-100:]
+                                        old_summary = chat_history[0]
                                         if summary is None: # Why not generated?
                                             feedback = None
                                             if response.prompt_feedback:
                                                 feedback = prompt_feedback_to_dict(response.prompt_feedback)
-                                            raise Exception(f"Empty summary, feedback: {feedback}")
-                                        old_files = release_unload_files(chat_history[:summary_lines], True, True)
-                                        chat_infos[message_id].setdefault("saved_msg", []).extend(old_files)
-                                        chat_infos[message_id]["saved_msg"] = chat_infos[message_id]["saved_msg"][-100:]
+                                            print_with_time(f"Empty summary, feedback: {feedback}")
+                                            summary = old_summary
+                                            chat_history.insert(0, {"message_type" : "event", "info" : "Conversation might contains prohibited content"})
                                         del chat_history[:-left_lines]
                                         chat_history.insert(0, {"message_type" : "summary_old_chat", "info" : summary})
                                     except Exception as e:
