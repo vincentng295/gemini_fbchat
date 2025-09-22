@@ -1870,6 +1870,7 @@ try:
                                     num_video = 0
                                     for msg in reversed(chat_history):
                                         if msg["message_type"] == "file":
+                                            msg["info"].setdefault("old_file_name", msg["info"].get("file_name", None))
                                             if msg["info"]["msg"] == "send video":
                                                 num_video += 1  # Increment first
                                                 msg["info"]["loaded"] = num_video <= max_video  # Compare after incrementing
@@ -2080,7 +2081,7 @@ try:
                                                 files_exist = False
                                                 # call archived files
                                                 for msg in chat_infos[message_id].setdefault("saved_msg", []):
-                                                    if msg["message_type"] == "file" and msg["info"]["file_name"] in load_keywords:
+                                                    if msg["message_type"] == "file" and (msg["info"]["file_name"] in load_keywords or msg["info"].get("old_file_name", None) in load_keywords):
                                                         msg["info"]["loaded"] = True
                                                         chat_infos[message_id]["saved_msg"].remove(msg)
                                                         load_keywords.remove(msg["info"]["file_name"])
@@ -2088,7 +2089,7 @@ try:
                                                         files_exist = True
                                                 # recall unload file in history
                                                 for msg in chat_history_temp:
-                                                    if msg["message_type"] == "file" and msg["info"]["file_name"] in load_keywords:
+                                                    if msg["message_type"] == "file" and (msg["info"]["file_name"] in load_keywords or msg["info"].get("old_file_name", None) in load_keywords):
                                                         msg["info"]["loaded"] = False
                                                         _copy = copy.deepcopy(msg)
                                                         _copy["info"]["loaded"] = True
