@@ -2057,9 +2057,24 @@ try:
                                                         file_upload = client.files.upload(file = file_name, config = UploadFileConfig(mime_type=mime_type,name=file_name))
                                                         git_summary = github_summary_content([file_upload, github_keyword]).text
                                                     except Exception: pass
-                                                    media_history.append({"message_type" : "file", "info" : {"name" : myname, "msg" : "send file", "file_name" : file_name, "mime_type" : mime_type , "url" : None, "loaded" : False, "retrieve_on_demand" : True, "git_url" : github_keyword, "display_name" : link_to_filename(github_keyword) + ".json", "summary" : git_summary }, "sending_time" : get_day_and_time() })
+                                                    media_history.append({"message_type" : "file", 
+                                                                            "info" : 
+                                                                            {
+                                                                              "name" : myname, 
+                                                                              "msg" : "send file", 
+                                                                              "file_name" : file_name, 
+                                                                              "mime_type" : mime_type , 
+                                                                              "url" : None, 
+                                                                              "loaded" : False, 
+                                                                              "retrieve_on_demand" : True, 
+                                                                              "git_url" : github_keyword, 
+                                                                              "display_name" : link_to_filename(github_keyword) + ".json", 
+                                                                              "summary" : git_summary 
+                                                                            }, 
+                                                                            "sending_time" : get_day_and_time() 
+                                                                        })
                                                 except Exception as e:
-                                                    media_history.append({"message_type" : "error", "info" : f"Cannot access repo: {github_keyword}"})
+                                                    media_history.append({"message_type" : "error", "info" : f"Cannot access repo: {github_keyword} - Reason: {e}"})
                                                     if "debug" in global_set["rules"]:
                                                         print_with_time(f"Không thể truy cập repo: {github_keyword} - {e}")
                                             for search_keyword in search_keywords:
