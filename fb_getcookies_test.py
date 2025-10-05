@@ -187,6 +187,7 @@ with open(bakfilename, "w", encoding='utf-8') as bakcookies_file:
 with open(f_login_info, "w", encoding='utf-8') as f:
     login_info["c_user"] = c_user
     login_info["i_user"] = i_user
+    login_info["last_check"] = int(time.time())
     json.dump(login_info, f)
 
 if not use_backup and if_running_on_github_workflows:
