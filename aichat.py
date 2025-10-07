@@ -631,6 +631,8 @@ try:
     switched_to_english = False
     last_reload_ts_mapping[mobileview] = 1
 
+    next_wait_time_check_friends = 60*random.randint(40, 60)  # 40 to 60 minutes
+
     while True:
         try:
             time.sleep(1)
@@ -653,13 +655,14 @@ try:
                     last_reload_ts_mapping[mobileview] = 1
                     driver.get("https://m.facebook.com/")
                     wait_for_load(driver)
-                elif (int(time.time()) - last_reload_ts_mapping.get(mobileview, 0)) > 60*30:
+                elif (int(time.time()) - last_reload_ts_mapping.get(mobileview, 0)) > next_wait_time_check_friends:
+                    next_wait_time_check_friends = 60*random.randint(40, 60)  # 40 to 60 minutes
                     if driver.current_window_handle != mobileview:
                         driver.switch_to.window(mobileview)
                     last_reload_ts_mapping[mobileview] = int(time.time())
                     friend_tab_btn = driver.find_elements(By.XPATH, "//span[contains(text(), '󰎍') or contains(text(), '󱎍')]")
                     if len(friend_tab_btn) > 0:
-                        driver.execute_script("arguments[0].click();", friend_tab_btn[0])
+                        js_click_at_center(driver, friend_tab_btn[0])
                         time.sleep(1)
                         wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, "div.loading-overlay")))
                         try:
@@ -667,7 +670,7 @@ try:
                                 By.XPATH, "//div[starts-with(@aria-label, 'Confirm ') and .//span[text()='Confirm']]"
                             ):
                                 print_with_time(button.get_attribute("aria-label"))
-                                driver.execute_script("arguments[0].click();", button)
+                                js_click_at_center(driver, button)
                                 time.sleep(0.1)
                         except Exception:
                             pass
@@ -677,7 +680,7 @@ try:
                                 By.XPATH, "//div[starts-with(@aria-label, 'Remove ') and .//span[text()='Delete']]"
                             ):
                                 print_with_time(button.get_attribute("aria-label"))
-                                driver.execute_script("arguments[0].click();", button)
+                                js_click_at_center(driver, button)
                                 time.sleep(0.1)
                         except Exception:
                             pass
