@@ -51,6 +51,7 @@ LOGGER.setLevel(logging.WARNING)
 MESSENGER_HOME_PAGE = "/messages/t/_"
 GENAI_MODEL = "gemini-2.5-flash"
 GENAI_MODEL_2 = "gemini-2.5-flash-lite"
+MAX_TOKENS = 100_000
 
 def is_only_whitespace(s):
     return all(
@@ -378,6 +379,13 @@ try:
                 response_mime_type="application/json",
             )
         )
+
+    def count_tokens(parts):
+        count_tokens = client.models.count_tokens(
+            model=GENAI_MODEL,
+            contents=parts,
+        )
+        return count_tokens.total_tokens
 
     def summary_generate_content(parts):
         return client.models.generate_content(
@@ -849,6 +857,7 @@ try:
                         # Execute commands if any
                         commands = chat_infos[message_id].pop("execute_cmd", [])
                         results = chat_infos[message_id].pop("result_cmd", [])
+                        unhandled_msgs = chat_infos[message_id].pop("unhandled_msgs", [])
 
                         while True:
                             try:
@@ -1154,6 +1163,7 @@ try:
                                 except Exception:
                                     pass
                                 chat_history_new, files_mapping = process_elements(msg_table)
+                                chat_history_new[:0] = unhandled_msgs # prepend unhandled messages
                                 print_with_time("Đã đọc xong!")
                                 try: # save the screenshot
                                     os.makedirs("screenshot", exist_ok=True)
@@ -1858,8 +1868,6 @@ try:
                                 list_unloaded = unload_ondemand_files(chat_history)
                                 if list_unloaded:
                                     chat_history.append({"message_type" : "event", "info" : f"Unloaded due to retrieve_on_demand flag: {list_unloaded}"})
-                                chat_history_temp = chat_history.copy()
-                                chat_history_temp.extend(chat_history_new)
                                 # Record new messages to notify admin
                                 if chat_infos[message_id].get("traced", False) == True and facebook_id != admin_fbid:
                                     for msg in chat_history_new:
@@ -1903,7 +1911,26 @@ try:
                                     exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}}, indent = 4, ensure_ascii=False)
                                     prompt_list.append(f">> Generate a response in properly formatted JSON to reply back to user. Unless you are searching with [search] tool, you are not allowed to say or imply that you're checking, searching, loading, waiting.\nExample:\n{exam}\n")
                                     return prompt_list
+                                chat_history_temp = chat_history.copy()
+                                chat_history_temp.extend(chat_history_new)
                                 prompt_list = build_prompt(chat_history_temp)
+                                tokens = count_tokens(prompt_list)
+                                if tokens > MAX_TOKENS:
+                                    # Need to reduce tokens
+                                    # Remove all files in chat_history_new
+                                    # And insert an error message
+                                    for i in range(len(chat_history_new)):
+                                        if chat_history_new[i]["message_type"] == "file":
+                                            chat_history_new[i] = {"message_type" : "error", "info" : f"A media file sent by {chat_history_new[i]['info']['name']} has been removed to reduce token usage."}
+                                    chat_history_new.insert(0, {"message_type" : "error", "info" : f"Conversation too long, some media files have been removed to reduce token usage ({tokens} tokens > {MAX_TOKENS} tokens limit)"})
+                                    # Rebuild prompt
+                                    chat_history_temp = chat_history.copy()
+                                    chat_history_temp.extend(chat_history_new)
+                                    # Files with last state is FileState.PROCESSING is also removed
+                                    for i in range(len(chat_history_temp)):
+                                        if chat_history_temp[i]["message_type"] == "file" and chat_history_temp[i]["info"].get("last_state", False) == FileState.PROCESSING:
+                                            chat_history_temp[i] = {"message_type" : "error", "info" : f"A media file sent by {chat_history_temp[i]['info']['name']} has been removed to reduce token usage."}
+                                    prompt_list = build_prompt(chat_history_temp)
                                 
                                 for _x in range(10):
                                     talk_again = False
@@ -2162,7 +2189,7 @@ try:
                                                 main.screenshot(f"screenshot/{message_id}.png")
                                             except Exception:
                                                 print_with_time("! Không thể lưu ảnh chụp màn hình")
-                                            chat_history_temp.extend(chat_history_new)
+                                            chat_infos[message_id].setdefault("unhandled_msgs", []).extend(chat_history_new)
                                             # Record new messages to notify admin
                                             if chat_infos[message_id].get("traced", False) == True and facebook_id != admin_fbid:
                                                 for msg in chat_history_new:
