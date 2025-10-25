@@ -467,7 +467,8 @@ try:
     chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
     chat_infos[admin_fbid]["admin_settings"].setdefault("admin_chatid", admin_fbid)
     chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_memory", "")
-    def get_admin(): return chat_infos[admin_fbid]["admin_settings"].get("admin_chatid", admin_fbid)
+    def get_admin_info(name, default=None): return chat_infos[admin_fbid]["admin_settings"].get(name, default)
+    def get_admin(): return get_admin_info("admin_chatid", admin_fbid)
 
     ai_prompt = None
 
@@ -489,9 +490,9 @@ try:
             chat_infos[admin_fbid]["admin_settings"]["system_prompt"] = ai_prompt
         else:
             chat_infos[admin_fbid]["admin_settings"].setdefault("system_prompt", ai_prompt)
-        ai_prompt = chat_infos[admin_fbid]["admin_settings"].get("system_prompt", ai_prompt)
+        ai_prompt = get_admin_info("system_prompt", ai_prompt)
         instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
-        current_memory = chat_infos[admin_fbid]["admin_settings"].get("aichat_memory", "")
+        current_memory = get_admin_info("aichat_memory", "")
         if current_memory:
             instruction.append(f"Your memory record is:\n{current_memory}")
         main_model_config = {
@@ -499,7 +500,7 @@ try:
         }
 
     def memory_updater_model(new_info):
-        current_memory = chat_infos[admin_fbid]["admin_settings"].get("aichat_memory", "")
+        current_memory = get_admin_info("aichat_memory", "")
         if not current_memory:
             current_memory = "No memory yet."
         parts = [ current_memory, f"Update with: {new_info}"]
@@ -656,7 +657,7 @@ try:
                     driver.execute_script("arguments[0].click();", english_buttons[0])
                     print_with_time("Switched to English")
                     switched_to_english = True
-            elif chat_infos[admin_fbid]["admin_settings"].get("auto_friends", False):
+            elif get_admin_info("auto_friends", False):
                 if last_reload_ts_mapping.get(mobileview, 0) == 0:
                     if driver.current_window_handle != mobileview:
                         driver.switch_to.window(mobileview)
@@ -744,7 +745,7 @@ try:
                         if in_cooldown:
                             continue
                         
-                        if (chat_infos[admin_fbid]["admin_settings"].get("aichat", True) == False or info.get("block", False) == True) and message_id != chat_infos[admin_fbid]["admin_settings"].get("admin_chatid"):
+                        if (get_admin_info("aichat", True) == False or info.get("block", False) == True) and message_id != get_admin():
                             continue
                         chat_list.append(chat_info)
                     except Exception:
@@ -880,7 +881,7 @@ try:
                                         if msg["message_type"] == "text_message" and is_cmd(msg["info"]["msg"]):
                                             final_last_msg["info"]["msg"] = "<This is command message. It has been hidden>"
                                         if msg["message_type"] == "file":
-                                            final_last_msg["info"]["loaded"] = msg["info"].get("loaded", False) and not chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False)
+                                            final_last_msg["info"]["loaded"] = msg["info"].get("loaded", False) and not get_admin_info("aichat_lite", False)
                                         if msg["message_type"] == "file" and final_last_msg["info"].get("loaded", False):
                                             file_name = msg["info"]["file_name"]
                                             mime_type = msg["info"]["mime_type"]
@@ -1240,7 +1241,7 @@ try:
                                             'Lite mode disabled',
                                             'Đã tắt chế độ Lite'
                                         ])
-                                    return 'Lite mode: {MODE}'.format(MODE = chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False))
+                                    return 'Lite mode: {MODE}'.format(MODE = get_admin_info("aichat_lite", False))
 
                                 def set_autofriends(mode, _1 = None):
                                     """
@@ -1255,7 +1256,7 @@ try:
                                     if mode.lower() == "false" or mode == "0":
                                         chat_infos[admin_fbid]["admin_settings"]["auto_friends"] = False
                                         return TL(['I will stop adding new friend requests', 'Tôi sẽ dừng chấp nhận các lời mời kết bạn mới'])
-                                    return 'Auto friends: {MODE}'.format(MODE = chat_infos[admin_fbid]["admin_settings"].get("auto_friends", False))
+                                    return 'Auto friends: {MODE}'.format(MODE = get_admin_info("auto_friends", False))
 
                                 def set_groupchat_support(mode, _1 = None):
                                     """
@@ -1270,7 +1271,7 @@ try:
                                     if mode.lower() == "false" or mode == "0":
                                         chat_infos[admin_fbid]["admin_settings"]["aichat_group"] = False
                                         return TL(['I will only reply to personal conversation', 'Tôi sẽ chỉ trả lời cuộc trò chuyện cá nhân'])
-                                    return 'Group chat support: {MODE}'.format(MODE = chat_infos[admin_fbid]["admin_settings"].get("aichat_group", True))
+                                    return 'Group chat support: {MODE}'.format(MODE = get_admin_info("aichat_group", True))
 
                                 def mute_by_id(chatid, _1 = None):
                                     """
@@ -1511,7 +1512,7 @@ try:
                                         return f'Rules: {chat_infos[admin_fbid]["admin_settings"].setdefault("opts", "")}'
                                     if name == "status":
                                         # Return status of bot, whenever it's running automated reply or not
-                                        return f"""AICHAT:{chat_infos[admin_fbid]['admin_settings'].get('aichat')} LITE:{chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False)}"""
+                                        return f"""AICHAT:{chat_infos[admin_fbid]['admin_settings'].get('aichat')} LITE:{get_admin_info("aichat_lite", False)}"""
                                     if name == "genkey":
                                         # Return Gemini API Key
                                         return f'Gemini API KEY: {genai_keys_text}'
@@ -1520,7 +1521,7 @@ try:
                                         return get_ram_usage()
                                     if name == "memory":
                                         # Return current memory of bot
-                                        memory = chat_infos[admin_fbid]["admin_settings"].get("aichat_memory", "")
+                                        memory = get_admin_info("aichat_memory", "")
                                         if not memory:
                                             return TL([
                                                 'No memory has been set',
@@ -1745,7 +1746,7 @@ try:
                                     
                                     # Check if arg1 is in func and execute
                                     if arg1 in func:
-                                        if facebook_id != admin_fbid:
+                                        if message_id != get_admin():
                                             return "?"
                                         try:
                                             return func[arg1](arg2, arg3)
@@ -1786,10 +1787,12 @@ try:
                                             if isinstance(result, str):
                                                 send_keys_long_text(driver, get_message_input(), result)
                                                 get_message_input().send_keys("\n") # Press Enter to send
+                                                time.sleep(0.1)
                                             elif isinstance(result, BytesIO):
                                                 ext, mime_type = get_mine_type(result.name)
                                                 drop_file(driver, get_message_input(), result, mime_type)
                                                 get_message_input().send_keys("\n") # Press Enter to send
+                                                time.sleep(0.1)
                                         if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
                                     del command_result
                                 except Exception:
@@ -1813,7 +1816,7 @@ try:
                                         # Wait user to send text message in 30s before process
                                         chat_infos[message_id]["delaytime"] = int(time.time()) + 30
                                         break
-                                    if chat_infos[admin_fbid]["admin_settings"].get("aichat_group", True) == False and is_group_chat:
+                                    if get_admin_info("aichat_group", True) == False and is_group_chat:
                                         break
                                 fake_typing = True
 
@@ -1897,7 +1900,7 @@ try:
                                     # current history
                                     prompt_list.append(f'The Messenger conversation with "{who_chatted}" is as json here:')
                                     prompt_list.extend(process_chat_history(chat_history))
-                                    if chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False):
+                                    if get_admin_info("aichat_lite", False):
                                         prompt_list = [item for item in prompt_list if isinstance(item, str)]
                                         prompt_list.append("NOTE: You are in Lite mode, you cannot review media such as photos, sounds and videos now. Please notify users of this if they submit files.")
                                     if "debug" in global_set["rules"]:
@@ -1906,7 +1909,7 @@ try:
                                     print_with_time(f"<{len(chat_history_new)} tin nhắn mới từ {who_chatted}>")
 
                                     prompt_list.insert(0, header_prompt)
-                                    if not chat_infos[admin_fbid]["admin_settings"].get("aichat_lite", False):
+                                    if not get_admin_info("aichat_lite", False):
                                         prompt_list[:0] = self_image_prompt
                                     exam = json.dumps({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : "Your message is here"}}, indent = 4, ensure_ascii=False)
                                     prompt_list.append(f">> Generate a response in properly formatted JSON to reply back to user. Unless you are searching with [search] tool, you are not allowed to say or imply that you're checking, searching, loading, waiting.\nExample:\n{exam}\n")
