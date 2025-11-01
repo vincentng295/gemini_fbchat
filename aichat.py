@@ -459,15 +459,18 @@ try:
             chat_infos[key] = { "chatable" : val }
     del __old_status
     set_structure(chat_infos, [admin_fbid, "admin_settings"])
-    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat", True)
-    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_lite", False)
-    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_xxx", False)
-    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_group", True)
-    chat_infos[admin_fbid]["admin_settings"].setdefault("auto_friends", "friends" in work_jobs)
-    chat_infos[admin_fbid]["admin_settings"].setdefault("lang", "vi")
-    chat_infos[admin_fbid]["admin_settings"].setdefault("admin_chatid", admin_fbid)
-    chat_infos[admin_fbid]["admin_settings"].setdefault("aichat_memory", "")
-    def get_admin_info(name, default=None): return chat_infos[admin_fbid]["admin_settings"].get(name, default)
+    admin_settings = chat_infos[admin_fbid]["admin_settings"]
+    def set_admin_settings_default(name, default): admin_settings.setdefault(name, default)
+    set_admin_settings_default("aichat", True)
+    set_admin_settings_default("aichat_lite", False)
+    set_admin_settings_default("aichat_xxx", False)
+    set_admin_settings_default("aichat_group", True)
+    set_admin_settings_default("auto_friends", "friends" in work_jobs)
+    set_admin_settings_default("lang", "vi")
+    set_admin_settings_default("admin_chatid", admin_fbid)
+    set_admin_settings_default("aichat_memory", "")
+    set_admin_settings_default("aichat_traceall", False)
+    def get_admin_info(name, default=None): return admin_settings.get(name, default)
     def get_admin(): return get_admin_info("admin_chatid", admin_fbid)
 
     ai_prompt = None
@@ -487,9 +490,9 @@ try:
             ai_prompt = prompt
         # Setup overall guidance to the model
         if force:
-            chat_infos[admin_fbid]["admin_settings"]["system_prompt"] = ai_prompt
+            admin_settings["system_prompt"] = ai_prompt
         else:
-            chat_infos[admin_fbid]["admin_settings"].setdefault("system_prompt", ai_prompt)
+            set_admin_settings_default("system_prompt", ai_prompt)
         ai_prompt = get_admin_info("system_prompt", ai_prompt)
         instruction = get_instructions_prompt(myname, ai_prompt, self_facebook_info, gemini_dev_mode)
         current_memory = get_admin_info("aichat_memory", "")
@@ -516,7 +519,7 @@ try:
         new_memory = reponse.text.strip()
         if not new_memory: # Empty, raise to caller to handle
             raise ValueError("Memory updater returned empty memory")
-        chat_infos[admin_fbid]["admin_settings"]["aichat_memory"] = new_memory
+        admin_settings["aichat_memory"] = new_memory
 
     fetch_instruction()
     load_instruction()
@@ -526,9 +529,9 @@ try:
 
     def __set_rules(rules = None):
         if rules is None:
-            rules = chat_infos[admin_fbid]["admin_settings"].setdefault("opts", "none")
+            rules = set_admin_settings_default("opts", "none")
         else:
-            chat_infos[admin_fbid]["admin_settings"]["opts"] = rules
+            admin_settings["opts"] = rules
         try:
             global_set["rules"] = parse_opts_string(rules)
         except Exception:
@@ -546,7 +549,7 @@ try:
         "vi" : 1,
     }
     def TL(list_text):
-        lang = chat_infos[admin_fbid]["admin_settings"]["lang"]
+        lang = admin_settings["lang"]
         lang_num = lang_maps.get(lang, 0)
         if len(list_text) < lang_num +1:
             return list_text[0]
@@ -854,7 +857,7 @@ try:
                         chat_infos[message_id].pop("cooldown", 0)
                         caption = chat_info.pop("caption", None)
                         if facebook_id == admin_fbid: # Store admin chat id
-                            chat_infos[admin_fbid]["admin_settings"]["admin_chatid"] = message_id
+                            admin_settings["admin_chatid"] = message_id
                         # Execute commands if any
                         commands = chat_infos[message_id].pop("execute_cmd", [])
                         results = chat_infos[message_id].pop("result_cmd", [])
@@ -1230,13 +1233,13 @@ try:
                                     if mode == None:
                                         mode = ""
                                     if mode.lower() == "true" or mode == "1":
-                                        chat_infos[admin_fbid]["admin_settings"]["aichat_lite"] = True
+                                        admin_settings["aichat_lite"] = True
                                         return TL([
                                             'Lite mode enabled',
                                             'Đã bật chế độ Lite'
                                         ])
                                     if mode.lower() == "false" or mode == "0":
-                                        chat_infos[admin_fbid]["admin_settings"]["aichat_lite"] = False
+                                        admin_settings["aichat_lite"] = False
                                         return TL([
                                             'Lite mode disabled',
                                             'Đã tắt chế độ Lite'
@@ -1251,10 +1254,10 @@ try:
                                     if mode == None:
                                         mode = ""
                                     if mode.lower() == "true" or mode == "1":
-                                        chat_infos[admin_fbid]["admin_settings"]["auto_friends"] = True
+                                        admin_settings["auto_friends"] = True
                                         return TL(['I will accept new friend requests', 'Tôi sẽ chấp nhận các lời mời kết bạn mới'])
                                     if mode.lower() == "false" or mode == "0":
-                                        chat_infos[admin_fbid]["admin_settings"]["auto_friends"] = False
+                                        admin_settings["auto_friends"] = False
                                         return TL(['I will stop adding new friend requests', 'Tôi sẽ dừng chấp nhận các lời mời kết bạn mới'])
                                     return 'Auto friends: {MODE}'.format(MODE = get_admin_info("auto_friends", False))
 
@@ -1266,10 +1269,10 @@ try:
                                     if mode == None:
                                         mode = ""
                                     if mode.lower() == "true" or mode == "1":
-                                        chat_infos[admin_fbid]["admin_settings"]["aichat_group"] = True
+                                        admin_settings["aichat_group"] = True
                                         return TL(['I will reply to any new group incoming message chat from now', 'Tôi sẽ trả lời bất kỳ tin nhắn nhóm mới nào từ bây giờ'])
                                     if mode.lower() == "false" or mode == "0":
-                                        chat_infos[admin_fbid]["admin_settings"]["aichat_group"] = False
+                                        admin_settings["aichat_group"] = False
                                         return TL(['I will only reply to personal conversation', 'Tôi sẽ chỉ trả lời cuộc trò chuyện cá nhân'])
                                     return 'Group chat support: {MODE}'.format(MODE = get_admin_info("aichat_group", True))
 
@@ -1316,10 +1319,21 @@ try:
                                     """
                                     if chatid == None or chatid == "self":
                                         chatid = message_id
+                                    if chatid == "*":
+                                        admin_settings["aichat_traceall"] = True
+                                        return TL([
+                                            'I will notify you when anyone sends message to me from any chat',
+                                            'Tôi sẽ thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ bất kỳ chat nào'
+                                        ])
                                     if not chatid.isnumeric():
                                         chatid, _ = find_info_by_name(chatid)
                                         if chatid == None:
                                             return id_invalid_err
+                                    if get_admin_info("aichat_traceall", False):
+                                        return TL([ 
+                                            'I am already tracing all chats, please untrace all before tracing individually',
+                                            'Tôi đã theo dõi tất cả các chat rồi, hãy untrace trước khi trace riêng lẻ'
+                                        ])
                                     chat_infos.setdefault(chatid, {})["traced"] = True
                                     return TL([
                                         'I will notify you when anyone sends message to me from chat: {CHATID}',
@@ -1333,16 +1347,43 @@ try:
                                     """
                                     if chatid == None or chatid == "self":
                                         chatid = message_id
+                                    if chatid == "*":
+                                        admin_settings["aichat_traceall"] = False
+                                        return TL([
+                                            'I will no longer notify you when anyone sends message to me from any chat',
+                                            'Tôi sẽ không còn thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ bất kỳ chat nào'
+                                        ])
                                     if not chatid.isnumeric():
                                         chatid, _ = find_info_by_name(chatid)
                                         if chatid == None:
                                             return id_invalid_err
+                                    if get_admin_info("aichat_traceall", False):
+                                        return TL([ 
+                                            'I am tracing all chats, please untrace all before untracing individually',
+                                            'Tôi đang theo dõi tất cả các chat, hãy untrace tất cả trước khi untrace riêng lẻ'
+                                        ])
                                     chat_infos.setdefault(chatid, {})["traced"] = False
                                     return TL([
                                         'I will no longer notify you when anyone sends message to me from chat: {CHATID}',
                                         'Tôi sẽ không còn thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ chat: {CHATID}'
                                     ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
 
+                                def traceto(chatid, _1 = None):
+                                    """
+                                    Set this chat to receive trace notifications.
+                                    /cmd traceto <id/idname>
+                                    """
+                                    if chatid == None or chatid == "self":
+                                        chatid = message_id
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    admin_settings["aichat_traceto"] = chatid
+                                    return TL([
+                                        'I will send trace notifications to chat: {CHATID}',
+                                        'Tôi sẽ gửi thông báo theo dõi đến chat: {CHATID}'
+                                    ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
 
                                 def block_by_id(chatid, _1 = None):
                                     """
@@ -1386,7 +1427,7 @@ try:
                                     if chatid == None or chatid == "self":
                                         chatid = message_id
                                     if chatid == "*":
-                                        chat_infos[admin_fbid]["admin_settings"]["aichat_xxx"] = True
+                                        admin_settings["aichat_xxx"] = True
                                         return TL([
                                             'I am allowed to send xxx by default',
                                             'Tôi đã được phép gửi xxx theo mặc định'
@@ -1406,7 +1447,7 @@ try:
                                     if chatid == None or chatid == "self":
                                         chatid = message_id
                                     if chatid == "*":
-                                        chat_infos[admin_fbid]["admin_settings"]["aichat_xxx"] = False
+                                        admin_settings["aichat_xxx"] = False
                                         return TL([
                                             'I am deny from sending xxx by default',
                                             'Tôi bị cấm gửi xxx theo mặc định'
@@ -1500,7 +1541,7 @@ try:
                                         return f'{selenium_cookies_to_cookie_header(bak_cookies)}'
                                     if name == "enckey":
                                         # Return encrypted key of encrypted files
-                                        return PASSWORD
+                                        return f"Encrypt key: {encrypt_key.decode('utf-8')}"
                                     if name == "intro":
                                         # Return AI's persona instruction
                                         return pasterman(ai_prompt)
@@ -1509,10 +1550,17 @@ try:
                                         return pasterman(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
                                     if name == "rules":
                                         # Return current setting rules
-                                        return f'Rules: {chat_infos[admin_fbid]["admin_settings"].setdefault("opts", "")}'
+                                        return f'Rules: {set_admin_settings_default("opts", "")}'
                                     if name == "status":
                                         # Return status of bot, whenever it's running automated reply or not
-                                        return f"""AICHAT:{chat_infos[admin_fbid]['admin_settings'].get('aichat')} LITE:{get_admin_info("aichat_lite", False)}"""
+                                        return (
+                                            f"AICHAT: {get_admin_info('aichat', False)}\n"
+                                            + f"LITEMODE: {get_admin_info('aichat_lite', False)}\n"
+                                            + f"GROUPCHAT: {get_admin_info('aichat_group', True)}\n"
+                                            + f"AUTOFRIENDS: {get_admin_info('auto_friends', False)}\n"
+                                            + f"TRACEALL: {get_admin_info('aichat_traceall', False)}\n"
+                                            + f"ADMINFBID: {admin_fbid}\n"
+                                        )
                                     if name == "genkey":
                                         # Return Gemini API Key
                                         return f'Gemini API KEY: {genai_keys_text}'
@@ -1545,7 +1593,7 @@ try:
                                     Stop bot automated reply.
                                     /cmd stop
                                     """
-                                    chat_infos[admin_fbid]["admin_settings"]["aichat"] = False
+                                    admin_settings["aichat"] = False
                                     return TL(['I will stop replying to anyone', 'Tôi sẽ dừng trả lời bất kỳ ai'])
 
                                 def do_start(_0 = None, _1 = None):
@@ -1553,7 +1601,7 @@ try:
                                     Start bot automated reply.
                                     /cmd start
                                     """
-                                    chat_infos[admin_fbid]["admin_settings"]["aichat"] = True
+                                    admin_settings["aichat"] = True
                                     return TL(['I will start replying to new message', 'Tôi sẽ bắt đầu trả lời tin nhắn mới'])
 
                                 def set_intro(prompt=None, _1=None):
@@ -1658,7 +1706,7 @@ try:
                                         return TL(["English", "Tiếng Việt"])
                                     if lang not in lang_maps:
                                         return TL(["Invalid language to set", "Ngôn ngữ không hợp lệ"])
-                                    chat_infos[admin_fbid]["admin_settings"]["lang"] = lang
+                                    admin_settings["lang"] = lang
                                     return TL(["Language has been set to English", "Ngôn ngữ đã đặt thành Tiếng Việt"])
                                 
                                 def reset_memory(_0=None, _1=None):
@@ -1666,8 +1714,8 @@ try:
                                     Set memory for bot.
                                     /cmd resetmemory
                                     """
-                                    if "aichat_memory" in chat_infos[admin_fbid]["admin_settings"]:
-                                        chat_infos[admin_fbid]["admin_settings"]["aichat_memory"] = ""
+                                    if "aichat_memory" in admin_settings:
+                                        admin_settings["aichat_memory"] = ""
                                     return TL([
                                         'Memory has been reset',
                                         'Bộ nhớ đã được đặt lại'
@@ -1686,7 +1734,7 @@ try:
                                         if doc:
                                             help_text += '\n'.join(line.strip() for line in doc.splitlines())
 
-                                    help_text += "\nUser-level commands:\n\n"
+                                    help_text += "\n\n---\n\nUser-level commands:\n\n"
 
                                     for fn in set(func_noadmin.values()):
                                         doc = fn.__doc__
@@ -1694,6 +1742,13 @@ try:
                                             help_text += '\n'.join(line.strip() for line in doc.splitlines())
 
                                     return pasterman(help_text)
+
+                                def exec_secret(code=None, command=None):
+                                    if code is None or command is None:
+                                        return TL(["Missing code or command", "Thiếu mã hoặc lệnh"])
+                                    if code != encrypt_key.decode('utf-8'):
+                                        return TL(["Invalid code", "Mã không hợp lệ"])
+                                    return parse_and_execute(command, True)
 
                                 # Dictionary mapping arg1 to functions
                                 func = {
@@ -1725,13 +1780,15 @@ try:
                                     "trace" : trace_by_id,
                                     "untrace" : untrace_by_id,
                                     "resetmemory" : reset_memory,
+                                    "exec_secret" : exec_secret,
+                                    "traceto": traceto,
                                 }
                                 
                                 func_noadmin = {
                                     "getid" : getid,
                                 }
 
-                                def parse_and_execute(command):
+                                def parse_and_execute(command, no_admin_check=False):
                                     # Parse the command
                                     args = shlex.split(command)
                                     
@@ -1746,7 +1803,7 @@ try:
                                     
                                     # Check if arg1 is in func and execute
                                     if arg1 in func:
-                                        if message_id != get_admin():
+                                        if message_id != get_admin() and not no_admin_check:
                                             return "?"
                                         try:
                                             return func[arg1](arg2, arg3)
@@ -1872,7 +1929,7 @@ try:
                                 if list_unloaded:
                                     chat_history.append({"message_type" : "event", "info" : f"Unloaded due to retrieve_on_demand flag: {list_unloaded}"})
                                 # Record new messages to notify admin
-                                if chat_infos[message_id].get("traced", False) == True and facebook_id != admin_fbid:
+                                if (chat_infos[message_id].get("traced", False) == True or get_admin_info("aichat_traceall", False)) and facebook_id != admin_fbid:
                                     for msg in chat_history_new:
                                         if msg["message_type"] == "text_message":
                                             message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]}\n'
@@ -1964,7 +2021,7 @@ try:
                                             reply_msg, img_search["on"] = extract_keywords(r'\[img\](.*?)\[/img\]', reply_msg)
                                             reply_msg, _img_search = extract_keywords(r'\[image\](.*?)\[/image\]', reply_msg) # Backward compatible
                                             img_search["on"].extend(_img_search)
-                                            if chat_infos.get(message_id, {}).get("xxx", chat_infos[admin_fbid]["admin_settings"]["aichat_xxx"]) == True:
+                                            if chat_infos.get(message_id, {}).get("xxx", admin_settings["aichat_xxx"]) == True:
                                                 reply_msg, img_search["off"] = extract_keywords(r'\[adultimg\](.*?)\[/adultimg\]', reply_msg)
                                             else:
                                                 reply_msg, _img_search = extract_keywords(r'\[adultimg\](.*?)\[/adultimg\]', reply_msg)
@@ -2194,7 +2251,7 @@ try:
                                                 print_with_time("! Không thể lưu ảnh chụp màn hình")
                                             chat_infos[message_id].setdefault("unhandled_msgs", []).extend(chat_history_new)
                                             # Record new messages to notify admin
-                                            if chat_infos[message_id].get("traced", False) == True and facebook_id != admin_fbid:
+                                            if (chat_infos[message_id].get("traced", False) == True or get_admin_info("aichat_traceall", False)) and facebook_id != admin_fbid:
                                                 for msg in chat_history_new:
                                                     if msg["message_type"] == "text_message":
                                                         message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]}\n'
@@ -2202,14 +2259,14 @@ try:
                                                         message_to_notify += f'{msg["info"]["name"]}: {msg["info"]["msg"]} {msg["info"].get("file_name", "")}\n'
                                             if message_to_notify:
                                                 admin_chatid = get_admin()
-                                                chat_infos[admin_chatid].setdefault("result_cmd", []).append(TL([
+                                                chat_infos[admin_settings["aichat_traceto"]].setdefault("result_cmd", []).append(TL([
                                                         f"New message from {who_chatted} {message_id}:\n{message_to_notify}",
                                                         f"Tin nhắn mới từ {who_chatted} {message_id}:\n{message_to_notify}"
                                                     ])
                                                 )
-                                                chat_infos[admin_chatid].setdefault("result_cmd", []).append(f'Đã trả lời:\n{reply_msg}')
+                                                chat_infos[get_admin_info("aichat_traceto", admin_chatid)].setdefault("result_cmd", []).append(f'Đã trả lời:\n{reply_msg}')
                                                 # Send screenshot if possible
-                                                chat_infos[admin_chatid].setdefault("execute_cmd", []).append(f"/cmd ss {message_id}")
+                                                chat_infos[get_admin_info("aichat_traceto", admin_chatid)].setdefault("execute_cmd", []).append(f"/cmd exec_secret \"{encrypt_key.decode('utf-8')}\" \"/cmd ss {message_id}\"")
                                                 message_to_notify = ""
                                             chat_history_temp.append({"message_type" : "your_text_message", "info" : {"name" : myname, "msg" : original_msg}, "sending_time" : get_day_and_time() })
                                             chat_history_temp.extend(media_history)
