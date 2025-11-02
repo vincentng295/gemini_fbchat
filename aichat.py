@@ -1780,12 +1780,12 @@ try:
                                     "trace" : trace_by_id,
                                     "untrace" : untrace_by_id,
                                     "resetmemory" : reset_memory,
-                                    "exec_secret" : exec_secret,
                                     "traceto": traceto,
                                 }
                                 
                                 func_noadmin = {
                                     "getid" : getid,
+                                    "exec_secret" : exec_secret,
                                 }
 
                                 def parse_and_execute(command, no_admin_check=False):
