@@ -1720,6 +1720,20 @@ try:
                                         'Memory has been reset',
                                         'Bộ nhớ đã được đặt lại'
                                     ])
+                                
+                                def force_sync(_0=None, _1=None):
+                                    """
+                                    Force sync chat infos and admin settings to disk.
+                                    /cmd sync
+                                    """
+                                    if on_github_workflows:
+                                        update()
+                                    else:
+                                        pickle_all()
+                                    return TL([
+                                        'Chat infos and admin settings have been synced to disk',
+                                        'Thông tin chat và cài đặt quản trị đã được đồng bộ vào đĩa'
+                                    ])
 
                                 def show_help(_0=None, _1=None):
                                     """
@@ -1781,6 +1795,7 @@ try:
                                     "untrace" : untrace_by_id,
                                     "resetmemory" : reset_memory,
                                     "traceto": traceto,
+                                    "sync": force_sync,
                                 }
                                 
                                 func_noadmin = {
