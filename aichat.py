@@ -668,6 +668,7 @@ try:
                     driver.get("https://m.facebook.com/")
                     wait_for_load(driver)
                 elif (int(time.time()) - last_reload_ts_mapping.get(mobileview, 0)) > next_wait_time_check_friends:
+                    print_with_time("Kiểm tra danh sách bạn bè...")
                     next_wait_time_check_friends = 60*random.randint(40, 60)  # 40 to 60 minutes
                     if driver.current_window_handle != mobileview:
                         driver.switch_to.window(mobileview)
