@@ -188,7 +188,7 @@ try:
     except Exception:
         bak_cookies = None
 
-    c_user, i_user = None, None
+    c_user, i_user, self_url = None, None, None
     try:
         with open("logininfo.json", "r", encoding='utf-8') as f:
             login_info = json.load(f)
@@ -196,6 +196,8 @@ try:
             work_jobs = parse_opts_string(login_info.get("work_jobs", "aichat,friends"))
             c_user = login_info.get("c_user", None)
             i_user = login_info.get("i_user", None)
+            self_url = login_info.get("facebook_url", None)
+
     except Exception as e:
         onetimecode = ""
         work_jobs = parse_opts_string("aichat,friends")
@@ -217,6 +219,7 @@ try:
     driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
     driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
     wait_for_load(driver)
+    time.sleep(5)
     js_pushstate(driver, "/me/photos_by/")
     
     # Define a mapping of chat tabs to their corresponding URLs
@@ -297,11 +300,8 @@ try:
             "about_places",
             "about_contact_and_basic_info",
         ]
-    self_url = get_facebook_profile_url(cookies)
 
-    self_fbid = get_facebook_id(self_url)
-    if self_fbid is None:
-        self_fbid = get_facebook_id_from_cookies(cookies)
+    self_fbid = get_facebook_id_from_cookies(cookies)
     print_with_time(f"URL là {self_url}")
     self_image_prompt = []
 

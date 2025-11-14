@@ -220,23 +220,23 @@ def add_cookie(cookies, cookie):
 
 def check_cookies_(cookies):
     if cookies == None:
-        return 0
+        return 0, None
     try:
         current_url = get_facebook_profile_url(cookies)
         if not is_facebook_domain(current_url):
-            return 0
+            return 0, None
         path = get_path(current_url)
         if not path or path == "www.facebook.com/login":
-            return 0
+            return 0, None
         if path.startswith("/checkpoint/"):
-            return -1
+            return -1, None
         if path == "/forced_account_switch":
-            return -2
+            return -2, None
         print("Đăng nhập thành công:", current_url)
+        return 1, current_url
     except Exception as e:
         print(f"Error: {e}")
-        return 0
-    return 1
+        return 0, None
 
 def check_cookies(filename=None):
     try:
@@ -244,14 +244,16 @@ def check_cookies(filename=None):
         if filename:
             with open(filename, "r", encoding='utf-8') as f:
                 cookies = json.load(f)
-        return check_cookies_(cookies), cookies
+        res, fb_url = check_cookies_(cookies)
+        return res, cookies, fb_url
     except Exception as e:
         print(f"Error loading cookies from file: {e}")
-        return 0, cookies
+        return 0, cookies, None
 
 def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cookies = None, incognito = False, finally_stop = False):
     if password is None or password == "":
-        return 0, None
+        return 0, None, None
+    fb_url = None
     try:
         scoped_dir = os.getenv("SCPDIR")
         driver = __chrome_driver__(scoped_dir, True, incognito)
@@ -437,16 +439,16 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         cookies = driver.get_cookies()
     except Exception as e:
         print(f"Error: {e}")
-        return 0, None
+        return 0, None, None
     finally:
         driver.quit()
         
-    ret_cookies = check_cookies_(cookies)
+    ret_cookies, fb_url = check_cookies_(cookies)
     if ret_cookies == -2:
         print("UID không hợp lệ, sử dụng tài khoản chính")
         delete_cookie(cookies, "i_user")
-        ret_cookies = check_cookies_(cookies)
-    return ret_cookies, cookies
+        ret_cookies, fb_url = check_cookies_(cookies)
+    return ret_cookies, cookies, fb_url
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')

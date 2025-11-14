@@ -122,19 +122,20 @@ except Exception as e:
     print(e)
 
 print("Kiểm tra cookies")
-ret_cookies, cookies = check_cookies(filename)
+ret_cookies, cookies, fb_url = check_cookies(filename)
 if ret_cookies == -2:
     print("UID không hợp lệ, sử dụng tài khoản chính")
     delete_cookie(cookies, "i_user")
-    ret_cookies, cookies = check_cookies(filename)
+    ret_cookies, cookies, fb_url = check_cookies(filename)
 if c_user is None:
     c_user, i_user = get_facebook_all_id_from_cookies(cookies)
+time.sleep(5)
 print("Kiểm tra cookies dự phòng")
-ret_bakcookies, bakcookies = check_cookies(bakfilename)
+ret_bakcookies, bakcookies, fb_url = check_cookies(bakfilename)
 if ret_bakcookies == -2:
     print("UID không hợp lệ, sử dụng tài khoản chính")
     delete_cookie(bakcookies, "i_user")
-    ret_bakcookies, bakcookies = check_cookies(bakfilename)
+    ret_bakcookies, bakcookies, fb_url = check_cookies(bakfilename)
 
 if ret_cookies == -1 or ret_bakcookies == -1:
     print("Tài khoản đã bị khóa")
@@ -151,7 +152,7 @@ if username:
         if ret_cookies == 0:
             print("Đang lấy cookies mới...")
             need_upload = True
-            ret_cookies, cookies = get_fb_cookies(username, password, otp_secret, alt_account, incognito = True)
+            ret_cookies, cookies, fb_url = get_fb_cookies(username, password, otp_secret, alt_account, incognito = True)
         if ret_cookies == -1:
             print("Tài khoản đã bị khóa")
             raise Exception("Facebook Login Exception")
@@ -167,7 +168,7 @@ if username:
         if ret_bakcookies == 0:
             print("Đang lấy cookies dự phòng mới...")
             need_upload = True
-            ret_bakcookies, bakcookies = get_fb_cookies(username, password, otp_secret, alt_account, incognito = True)
+            ret_bakcookies, bakcookies, fb_url = get_fb_cookies(username, password, otp_secret, alt_account, incognito = True)
         if ret_bakcookies == -1:
             print("Tài khoản đã bị khóa")
             raise Exception("Facebook Login Exception")
@@ -178,6 +179,7 @@ if username:
         break
 
 print(f"ID: {c_user}, second ID: {i_user}")
+print(f"Facebook URL: {fb_url}")
 
 # Swap cookies to reduce the chance of cookies being logged out
 with open(filename, "w", encoding='utf-8') as cookies_file:
@@ -188,6 +190,7 @@ with open(f_login_info, "w", encoding='utf-8') as f:
     login_info["c_user"] = c_user
     login_info["i_user"] = i_user
     login_info["last_check"] = int(time.time())
+    login_info["facebook_url"] = fb_url
     json.dump(login_info, f)
 
 if not use_backup and if_running_on_github_workflows:
