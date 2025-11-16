@@ -189,6 +189,7 @@ try:
         bak_cookies = None
 
     c_user, i_user, self_url = None, None, None
+    self_fbid = get_facebook_id_from_cookies(cookies)
     try:
         with open("logininfo.json", "r", encoding='utf-8') as f:
             login_info = json.load(f)
@@ -207,18 +208,20 @@ try:
 
     admin_fbid = work_jobs.get("aichat_adminfbid", "100013487195619")
 
-    driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": True})
-    driver.get("https://www.facebook.com/")
-    driver.delete_all_cookies()
-    for cookie in cookies:
-        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
-        driver.add_cookie(cookie)
-    print_with_time("Đã khôi phục cookies")
-    set_facebook_id(driver, c_user, i_user)
-    cookies = driver.get_cookies()
-    driver.execute_cdp_cmd("Emulation.setScriptExecutionDisabled", {"value": False})
     driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
     wait_for_load(driver)
+    if self_fbid == get_facebook_id_from_cookies(driver.get_cookies()):
+        print_with_time("Cookies còn hiệu lực")
+    else:
+        driver.delete_all_cookies()
+        for cookie in cookies:
+            cookie['expiry'] = int(time.time()) + 31536000  # Extend expiry by 1 year
+            driver.add_cookie(cookie)
+        print_with_time("Đã khôi phục cookies")
+        set_facebook_id(driver, c_user, i_user)
+        cookies = driver.get_cookies()
+        driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
+        wait_for_load(driver)
     time.sleep(5)
     js_pushstate(driver, "/me/photos_by/")
     
@@ -245,7 +248,7 @@ try:
                     # The cookies is not actually die
                     print_with_time("Cập nhật lại cookies")
                     for cookie in cookies:
-                        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
+                        cookie['expiry'] = int(time.time()) + 31536000  # Extend expiry by 1 year
                         driver.add_cookie(cookie)
                     set_facebook_id(driver, c_user, i_user)
                     last_reload_ts_mapping = __init_last_reload_ts_mapping()
@@ -257,7 +260,7 @@ try:
                     # TODO: obtain new cookies
                     driver.delete_all_cookies()
                     for cookie in bak_cookies:
-                        cookie.pop('expiry', None)  # Remove 'expiry' field if it exists
+                        cookie['expiry'] = int(time.time()) + 31536000  # Extend expiry by 1 year
                         driver.add_cookie(cookie)
                     set_facebook_id(driver, c_user, i_user)
                     bak_cookies = None
@@ -301,7 +304,6 @@ try:
             "about_contact_and_basic_info",
         ]
 
-    self_fbid = get_facebook_id_from_cookies(cookies)
     print_with_time(f"URL là {self_url}")
     self_image_prompt = []
 
@@ -607,6 +609,11 @@ try:
         return True
 
     def pickle_all():
+        cookies = driver.get_cookies()
+        with open(filename, "w") as cookies_file:
+            json.dump(cookies, cookies_file)
+        with open(bakfilename, "w") as cookies_file:
+            json.dump(bak_cookies, cookies_file)
         global chat_histories_prev_hash
         if chat_histories_prev_hash == hash_dict(chat_histories):
             return False
