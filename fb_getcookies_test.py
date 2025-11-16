@@ -181,11 +181,10 @@ if username:
 print(f"ID: {c_user}, second ID: {i_user}")
 print(f"Facebook URL: {fb_url}")
 
-# Swap cookies to reduce the chance of cookies being logged out
 with open(filename, "w", encoding='utf-8') as cookies_file:
-    json.dump(bakcookies, cookies_file)
+    json.dump(cookies, cookies_file)
 with open(bakfilename, "w", encoding='utf-8') as bakcookies_file:
-    json.dump(cookies, bakcookies_file)
+    json.dump(bakcookies, bakcookies_file)
 with open(f_login_info, "w", encoding='utf-8') as f:
     login_info["c_user"] = c_user
     login_info["i_user"] = i_user
