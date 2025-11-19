@@ -105,15 +105,13 @@ def generate_image_model(client, prompt, model):
     return images, texts, feedback
 
 def generate_image(client, prompt):
-    try:
-        generate_image_model(client, prompt, "gemini-2.5-flash-image-preview")
-    except Exception: # If the first model fails, try the second one
-        return generate_image_model(client, prompt, "gemini-2.0-flash-preview-image-generation")
+    return generate_image_model(client, prompt, "gemini-2.5-flash-image")
 
 """
 from google import genai
 from gemini_generate_image import generate_image
 from PIL import Image
+API_KEY = "YOUR_API_KEY_HERE"
 client = genai.Client(api_key=API_KEY)
 with open("hmt.jpg", "rb") as img_input:
     image = Image.open(img_input)
