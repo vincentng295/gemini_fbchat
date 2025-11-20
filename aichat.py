@@ -188,6 +188,9 @@ try:
     except Exception:
         bak_cookies = None
 
+    with open("js/messages_monitor.js", "r", encoding="utf-8") as f:
+        MESSAGES_MONITOR_SCRIPT = f.read()
+
     c_user, i_user, self_url = None, None, None
     self_fbid = get_facebook_id_from_cookies(cookies)
     try:
@@ -735,32 +738,41 @@ try:
                     pass
 
                 chat_list = deque()
+
+                # load script to monitor messages
+                driver.execute_script(MESSAGES_MONITOR_SCRIPT)
+
                 # find all chat buttons
-                chat_btns = driver.find_elements(By.CSS_SELECTOR, 'a[href^="/messages/"]')
+                chat_hrefs =  driver.execute_script("""
+                    var data = [...(window.__MESSAGE_WATCHER_RESULT__ || [])]; // clone
+                    window.__MESSAGE_WATCHER_RESULT__.length = 0;             // reset
+                    return data;
+                """)
                 current_unix = int(time.time())
-                for chat_btn in chat_btns:
+                for href in chat_hrefs:
                     try:
-                        new_chat_indicator = chat_btn.find_elements(By.CSS_SELECTOR, 'div[role="button"][aria-hidden="true"]')
-                        
-                        href = chat_btn.get_attribute("href")
                         message_id = get_last_part(href)
                         chat_info = { "id" : message_id, "href" : href }
                         info = chat_infos.get(message_id, {})
-                        
-                        delay_rep_time = info.get("delaytime", None) is not None and (current_unix >= info.get("delaytime", current_unix))
-                        
-                        if not delay_rep_time and len(new_chat_indicator) <= 0 and not info.get("execute_cmd", []) and not info.get("result_cmd", []):
-                            continue
-                        
-                        in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
-                        if in_cooldown:
-                            continue
                         
                         if (get_admin_info("aichat", True) == False or info.get("block", False) == True) and message_id != get_admin():
                             continue
                         chat_list.append(chat_info)
                     except Exception:
                         continue
+                for key, info in chat_infos.items():
+                    chat_info = { "id" : key, "href" : f'/messages/t/{key}' }
+
+                    delay_rep_time = info.get("delaytime", None) is not None and (current_unix >= info.get("delaytime", current_unix))
+                    
+                    if not delay_rep_time and not info.get("execute_cmd", []) and not info.get("result_cmd", []):
+                        continue
+                    
+                    in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
+                    if in_cooldown:
+                        continue
+                    chat_list.append(chat_info)
+
 
                 if len(chat_list) > 0:
                     print_with_time(f"Nhận được {len(chat_list)} tin nhắn mới")
