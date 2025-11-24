@@ -757,6 +757,10 @@ try:
                         
                         if (get_admin_info("aichat", True) == False or info.get("block", False) == True) and message_id != get_admin():
                             continue
+                        # If the chat is in cooldown
+                        in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
+                        if in_cooldown:
+                            continue
                         chat_list.append(chat_info)
                     except Exception:
                         continue
@@ -767,7 +771,7 @@ try:
                     
                     if not delay_rep_time and not info.get("execute_cmd", []) and not info.get("result_cmd", []):
                         continue
-                    
+                    # If the chat is in cooldown
                     in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
                     if in_cooldown:
                         continue
