@@ -875,6 +875,8 @@ try:
                         chat_infos[message_id]["fbid"] = facebook_id
                         if chat_infos[message_id].get("idname", None) is None:
                             chat_infos[message_id]["idname"] = nickname.generate(who_chatted, extract_names())
+                        # set default trace
+                        chat_infos[message_id].setdefault("trace", get_admin_info("aichat_traceall", False))
                         # Pop delaytime
                         delay_is_set = chat_infos[message_id].pop("delaytime", None) is not None
                         # Remove cooldown
@@ -1345,6 +1347,8 @@ try:
                                         chatid = message_id
                                     if chatid == "*":
                                         admin_settings["aichat_traceall"] = True
+                                        for chatid, chat_info in chat_infos.items():
+                                            chat_info["traced"] = True
                                         return TL([
                                             'I will notify you when anyone sends message to me from any chat',
                                             'Tôi sẽ thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ bất kỳ chat nào'
@@ -1353,11 +1357,6 @@ try:
                                         chatid, _ = find_info_by_name(chatid)
                                         if chatid == None:
                                             return id_invalid_err
-                                    if get_admin_info("aichat_traceall", False):
-                                        return TL([ 
-                                            'I am already tracing all chats, please untrace all before tracing individually',
-                                            'Tôi đã theo dõi tất cả các chat rồi, hãy untrace trước khi trace riêng lẻ'
-                                        ])
                                     chat_infos.setdefault(chatid, {})["traced"] = True
                                     return TL([
                                         'I will notify you when anyone sends message to me from chat: {CHATID}',
@@ -1373,6 +1372,8 @@ try:
                                         chatid = message_id
                                     if chatid == "*":
                                         admin_settings["aichat_traceall"] = False
+                                        for chatid, chat_info in chat_infos.items():
+                                            chat_info["traced"] = False
                                         return TL([
                                             'I will no longer notify you when anyone sends message to me from any chat',
                                             'Tôi sẽ không còn thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ bất kỳ chat nào'
@@ -1381,11 +1382,6 @@ try:
                                         chatid, _ = find_info_by_name(chatid)
                                         if chatid == None:
                                             return id_invalid_err
-                                    if get_admin_info("aichat_traceall", False):
-                                        return TL([ 
-                                            'I am tracing all chats, please untrace all before untracing individually',
-                                            'Tôi đang theo dõi tất cả các chat, hãy untrace tất cả trước khi untrace riêng lẻ'
-                                        ])
                                     chat_infos.setdefault(chatid, {})["traced"] = False
                                     return TL([
                                         'I will no longer notify you when anyone sends message to me from chat: {CHATID}',
