@@ -475,6 +475,7 @@ try:
     set_admin_settings_default("admin_chatid", admin_fbid)
     set_admin_settings_default("aichat_memory", "")
     set_admin_settings_default("aichat_traceall", False)
+    set_admin_settings_default("aichat_cooldown", 10) # seconds
     def get_admin_info(name, default=None): return admin_settings.get(name, default)
     def get_admin(): return get_admin_info("admin_chatid", admin_fbid)
 
@@ -760,6 +761,7 @@ try:
                         # If the chat is in cooldown
                         in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
                         if in_cooldown:
+                            info["is_pending"] = True
                             continue
                         chat_list.append(chat_info)
                     except Exception:
@@ -768,13 +770,14 @@ try:
                     chat_info = { "id" : key, "href" : f'/messages/t/{key}' }
 
                     delay_rep_time = info.get("delaytime", None) is not None and (current_unix >= info.get("delaytime", current_unix))
-                    
-                    if not delay_rep_time and not info.get("execute_cmd", []) and not info.get("result_cmd", []):
+
+                    if not delay_rep_time and not info.get("is_pending", False) and not info.get("execute_cmd", []) and not info.get("result_cmd", []):
                         continue
                     # If the chat is in cooldown
                     in_cooldown = info.get("cooldown", None) is not None and (current_unix < info.get("cooldown", 0))
                     if in_cooldown:
                         continue
+                    info.pop("is_pending", None)
                     chat_list.append(chat_info)
 
 
@@ -877,6 +880,8 @@ try:
                             chat_infos[message_id]["idname"] = nickname.generate(who_chatted, extract_names())
                         # set default trace
                         chat_infos[message_id].setdefault("trace", get_admin_info("aichat_traceall", False))
+                        # set cooldown default
+                        chat_infos[message_id].setdefault("cooldown_sec", get_admin_info("aichat_cooldown", 10))
                         # Pop delaytime
                         delay_is_set = chat_infos[message_id].pop("delaytime", None) is not None
                         # Remove cooldown
@@ -1388,6 +1393,31 @@ try:
                                         'Tôi sẽ không còn thông báo cho bạn khi có ai đó gửi tin nhắn cho tôi từ chat: {CHATID}'
                                     ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
 
+                                def setcd_by_id(chatid, cdseconds = None):
+                                    """
+                                    Set cooldown for this chat.
+                                    /cmd setcd <id/idname> <seconds>
+                                    """
+                                    if cdseconds is None or not cdseconds.isnumeric():
+                                        return TL(["Cooldown seconds must be numeric"], ["Số giây giãn cách phải là số nguyên"])
+                                    if chatid == "*":
+                                        admin_settings["aichat_cooldown"] = int(cdseconds)
+                                        for chatid, chat_info in chat_infos.items():
+                                            chat_info["cooldown_sec"] = int(cdseconds)
+                                        return TL([
+                                            'I have set cooldown to {CDSECONDS} seconds for all chats',
+                                            'Tôi đã đặt giãn cách là {CDSECONDS} giây cho tất cả các chat'
+                                        ]).format(CDSECONDS = cdseconds)
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    chat_infos.setdefault(chatid, {})["cooldown_sec"] = int(cdseconds)
+                                    return TL([
+                                        'I have set cooldown to {CDSECONDS} seconds for chat: {CHATID}',
+                                        'Tôi đã đặt giãn cách là {CDSECONDS} giây cho chat: {CHATID}'
+                                    ]).format(CDSECONDS = cdseconds, CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
+
                                 def traceto(chatid, _1 = None):
                                     """
                                     Set this chat to receive trace notifications.
@@ -1816,6 +1846,7 @@ try:
                                     "resetmemory" : reset_memory,
                                     "traceto": traceto,
                                     "sync": force_sync,
+                                    "setcd": setcd_by_id,
                                 }
                                 
                                 func_noadmin = {
@@ -2317,7 +2348,8 @@ try:
                                                 bytesio_to_file(file_object, file_name)
                                                 del file_object, file_data
                                             del files_mapping
-                                            if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
+                                            # Set cooldown for this chat to 10 seconds to prevent spam
+                                            if message_id != get_admin(): chat_infos[message_id]["cooldown"] = int(time.time()) + chat_infos[message_id].get("cooldown_sec", 10)
                                         if not talk_again:
                                             break
                                         talk_again = False
