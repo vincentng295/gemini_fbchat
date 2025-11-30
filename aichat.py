@@ -2043,20 +2043,28 @@ try:
                                 tokens = count_tokens(prompt_list)
                                 if tokens > MAX_TOKENS:
                                     # Need to reduce tokens
-                                    # Remove all files in chat_history_new
+                                    # Unload all files in chat_history_new
+                                    # And put unloaded files into archived messages
                                     # And insert an error message
+                                    unloaded_files = []
                                     for i in range(len(chat_history_new)):
                                         if chat_history_new[i]["message_type"] == "file":
-                                            chat_history_new[i] = {"message_type" : "error", "info" : f"A media file sent by {chat_history_new[i]['info']['name']} has been removed to reduce token usage."}
-                                    chat_history_new.insert(0, {"message_type" : "error", "info" : f"Conversation too long, some media files have been removed to reduce token usage ({tokens} tokens > {MAX_TOKENS} tokens limit)"})
+                                            unloaded_files.append(chat_history_new[i])
+                                            chat_history_new[i] = {"message_type" : "error", "info" : f"{chat_history_new[i]['info'].get('file_name', None)} has been archived to reduce token usage."}
+                                    chat_history_new.insert(0, {"message_type" : "error", "info" : f"Conversation too long, media files have been archived to reduce token usage ({tokens} tokens > {MAX_TOKENS} tokens limit)"})
                                     # Rebuild prompt
                                     chat_history_temp = chat_history.copy()
                                     chat_history_temp.extend(chat_history_new)
-                                    # Files with last state is FileState.PROCESSING is also removed
+                                    # All previous files in chat_history_temp also need to be unloaded
                                     for i in range(len(chat_history_temp)):
-                                        if chat_history_temp[i]["message_type"] == "file" and chat_history_temp[i]["info"].get("last_state", False) == FileState.PROCESSING:
-                                            chat_history_temp[i] = {"message_type" : "error", "info" : f"A media file sent by {chat_history_temp[i]['info']['name']} has been removed to reduce token usage."}
+                                        if chat_history_temp[i]["message_type"] == "file":
+                                            unloaded_files.append(chat_history_temp[i])
+                                            chat_history_temp[i] = {"message_type" : "error", "info" : f"{chat_history_temp[i]['info'].get('file_name', None)} has been archived to reduce token usage."}
+                                    unloaded_files = release_unload_files(unloaded_files, False, False) # Just unload
+                                    chat_infos[message_id].setdefault("saved_msg", []).extend(unloaded_files)
+                                    chat_infos[message_id]["saved_msg"] = chat_infos[message_id]["saved_msg"][-100:]
                                     prompt_list = build_prompt(chat_history_temp)
+                                    del unloaded_files
                                 
                                 for _x in range(10):
                                     talk_again = False
