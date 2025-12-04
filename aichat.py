@@ -2043,17 +2043,16 @@ try:
                                 tokens = count_tokens(prompt_list)
                                 if tokens > MAX_TOKENS:
                                     # Need to reduce tokens
-                                    # Unload all files in chat_history_new
-                                    # And put unloaded files into archived messages
+                                    # All previous files in chat_history_temp also need to be unloaded first
                                     # And insert an error message
                                     unloaded_files = []
-                                    for i in range(len(chat_history_new)):
-                                        if chat_history_new[i]["message_type"] == "file":
-                                            unloaded_files.append(chat_history_new[i])
-                                            chat_history_new[i] = {"message_type" : "error", "info" : f"{chat_history_new[i]['info'].get('file_name', None)} has been archived to reduce token usage. Reload it with [load] tag if needed."}
+                                    chat_history_temp = chat_history.copy()
+                                    for i in range(len(chat_history_temp)):
+                                        if chat_history_temp[i]["message_type"] == "file":
+                                            unloaded_files.append(chat_history_temp[i])
+                                            chat_history_temp[i] = {"message_type" : "error", "info" : f"{chat_history_temp[i]['info'].get('file_name', None)} has been archived to reduce token usage. Reload it with [load] tag if needed."}
                                     chat_history_new.insert(0, {"message_type" : "error", "info" : f"Conversation too long, media files have been archived to reduce token usage ({tokens} tokens > {MAX_TOKENS} tokens limit)"})
                                     # Rebuild prompt
-                                    chat_history_temp = chat_history.copy()
                                     chat_history_temp.extend(chat_history_new)
                                     unloaded_files = release_unload_files(unloaded_files, False, False) # Just unload
                                     chat_infos[message_id].setdefault("saved_msg", []).extend(unloaded_files)
@@ -2062,8 +2061,10 @@ try:
                                     tokens = count_tokens(prompt_list)
                                     if tokens > MAX_TOKENS:
                                         # Still exceed limit, need to unload all files in chat_history_temp
-                                        # All previous files in chat_history_temp also need to be unloaded
+                                        # Unload all files in chat_history_new
+                                        # And put unloaded files into archived messages
                                         unloaded_files = []
+                                        # chat_history_temp already has unloaded files in previous step
                                         for i in range(len(chat_history_temp)):
                                             if chat_history_temp[i]["message_type"] == "file":
                                                 unloaded_files.append(chat_history_temp[i])
