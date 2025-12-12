@@ -100,8 +100,13 @@ google_search_tool = Tool(
     google_search = GoogleSearch()
 )
 
-def pop_key_for_genai():
+def pop_key_for_genai(key = None):
     global genai_keys_for_genai, client
+    # find the index of the specified key
+    if key is not None and key in genai_keys_for_genai:
+        index = genai_keys_for_genai.index(key)
+        # get all keys starting from that index
+        genai_keys_for_genai = genai_keys_for_genai[index:]
     if len(genai_keys_for_genai) <= 0:
         genai_keys_for_genai = genai_keys.copy()
         return False
@@ -111,8 +116,13 @@ def pop_key_for_genai():
     return True
 pop_key_for_genai()
 
-def pop_key_for_genimg():
+def pop_key_for_genimg(key = None):
     global genai_keys_for_genimg, genimg_client
+    # find the index of the specified key
+    if key is not None and key in genai_keys_for_genimg:
+        index = genai_keys_for_genimg.index(key)
+        # get all keys starting from that index
+        genai_keys_for_genimg = genai_keys_for_genimg[index:]
     if len(genai_keys_for_genimg) <= 0:
         genai_keys_for_genimg = genai_keys.copy()
         return False
@@ -121,6 +131,16 @@ def pop_key_for_genimg():
     genimg_client = genai.Client(api_key=genimg_key, http_options=HttpOptions(timeout=GEMINI_TIMEOUT))
     return True
 pop_key_for_genimg()
+
+def get_current_key(client):
+    return client._api_client.api_key
+
+# Rotate list left by n
+# Rotate example:
+# [1, 2, 3, 4], 2 -> [3, 4, 1, 2]
+def rotate_list_left(lst, n):
+    n = n % len(lst)  # Ensure n is within the bounds of the list length
+    return lst[n:] + lst[:n]
 
 cwd = os.getcwd()
 scoped_dir = os.getenv("SCPDIR", os.path.join(cwd, "scoped_dir"))
@@ -476,10 +496,22 @@ try:
     set_admin_settings_default("aichat_memory", "")
     set_admin_settings_default("aichat_traceall", False)
     set_admin_settings_default("aichat_cooldown", 10) # seconds
+    set_admin_settings_default("aichat_current_key", get_current_key(client))
+    set_admin_settings_default("genimg_current_key", get_current_key(genimg_client))
     def get_admin_info(name, default=None): return admin_settings.get(name, default)
     def get_admin(): return get_admin_info("admin_chatid", admin_fbid)
 
     ai_prompt = None
+
+    # Restore current key
+    client = genai.Client(api_key=get_admin_info("aichat_current_key", None), http_options=HttpOptions(timeout=GEMINI_TIMEOUT))
+    if get_admin_info("aichat_current_key", None) in genai_keys:
+        # Rotate list to put current_key at front
+        genai_keys_for_genai = rotate_list_left(genai_keys, genai_keys.index(get_admin_info("aichat_current_key", None)))
+    genimg_client = genai.Client(api_key=get_admin_info("genimg_current_key", None), http_options=HttpOptions(timeout=GEMINI_TIMEOUT))
+    if get_admin_info("genimg_current_key", None) in genai_keys:
+        # Rotate list to put current_key at front
+        genai_keys_for_genimg = rotate_list_left(genai_keys, genai_keys.index(get_admin_info("genimg_current_key", None)))
 
 
     def fetch_instruction():
@@ -2181,7 +2213,9 @@ try:
                                                         del gen_img_prompt, images
                                                         break
                                                     except (ClientError, ServerError):
-                                                        if pop_key_for_genimg(): # Try to switch key
+                                                        ret = pop_key_for_genimg(get_admin_info("genimg_current_key", None))
+                                                        admin_settings["genimg_current_key"] = get_current_key(genimg_client)
+                                                        if ret: # Try to switch key
                                                             continue
                                                         chat_history_temp.append({"message_type" : "generate_image_result", "info" : {"prompt" : gen_img, "final_result" : "FAILED TO GENERATED: ResourceExhausted"}})
                                                         break
@@ -2291,6 +2325,9 @@ try:
                                                 talk_again = True
                                             if is_only_whitespace(reply_msg):
                                                 reply_msg = "OK" + reply_msg
+                                            if "debug" in global_set["rules"]:
+                                                # print current key into console ***(3 last chars) for debug
+                                                print_with_time(f"* Current Gemini Key: ***{get_current_key(client)[-3:]}")
                                             print_with_time("* AI Trả lời:", reply_msg if "debug" in global_set["rules"] else "<1 tin nhắn>")
                                             fake_typing = False
                                             driver.execute_script("arguments[0].click();", button)
@@ -2378,7 +2415,9 @@ try:
                                         break
                                     except (ClientError, ServerError) as e:
                                         print_with_time(e)
-                                        if pop_key_for_genai(): # Switch key if possible
+                                        ret = pop_key_for_genai(get_admin_info("aichat_current_key", None))
+                                        admin_settings["aichat_current_key"] = get_current_key(client)
+                                        if ret: # Switch key if possible
                                             print_with_time(f"Lỗi ClientError/ServerError từ Gemini, thử lại với khóa khác")
                                             prompt_list = build_prompt(chat_history_temp)
                                             continue
@@ -2394,6 +2433,9 @@ try:
                                     print_with_time("Thử lại:", _x + 1)
                                     fake_typing = True
                                     time.sleep(2)
+                                # Successfully sent the reply or failed after retries
+                                if get_admin_info("aichat_current_key", None) in genai_keys:
+                                    genai_keys_for_genai = rotate_list_left(genai_keys, genai_keys.index(get_admin_info("aichat_current_key", None)))
                                 break
                             except StaleElementReferenceException:
                                 pass
