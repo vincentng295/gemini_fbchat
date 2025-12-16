@@ -486,18 +486,26 @@ try:
     set_structure(chat_infos, [admin_fbid, "admin_settings"])
     admin_settings = chat_infos[admin_fbid]["admin_settings"]
     def set_admin_settings_default(name, default): admin_settings.setdefault(name, default)
-    set_admin_settings_default("aichat", True)
-    set_admin_settings_default("aichat_lite", False)
-    set_admin_settings_default("aichat_xxx", False)
-    set_admin_settings_default("aichat_group", True)
-    set_admin_settings_default("auto_friends", "friends" in work_jobs)
-    set_admin_settings_default("lang", "vi")
-    set_admin_settings_default("admin_chatid", admin_fbid)
-    set_admin_settings_default("aichat_memory", "")
-    set_admin_settings_default("aichat_traceall", False)
-    set_admin_settings_default("aichat_cooldown", 10) # seconds
-    set_admin_settings_default("aichat_current_key", get_current_key(client))
-    set_admin_settings_default("genimg_current_key", get_current_key(genimg_client))
+    default_values = {
+        "aichat" : True,
+        "aichat_lite" : False,
+        "aichat_xxx" : False,
+        "aichat_group" : True,
+        "auto_friends" : "friends" in work_jobs,
+        "lang" : "vi",
+        "admin_chatid" : admin_fbid,
+        "aichat_memory" : "",
+        "aichat_traceall" : False,
+        "aichat_cooldown" : 10, # seconds
+        "aichat_current_key" : get_current_key(client),
+        "genimg_current_key" : get_current_key(genimg_client),
+    }
+    for key, val in default_values.items():
+        set_admin_settings_default(key, val)
+    # Removed all settings that are not in default_values
+    for key in list(admin_settings.keys()):
+        if key not in default_values:
+            del admin_settings[key]
     def get_admin_info(name, default=None): return admin_settings.get(name, default)
     def get_admin(): return get_admin_info("admin_chatid", admin_fbid)
 
