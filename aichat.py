@@ -2019,6 +2019,11 @@ try:
                                             chat_history.insert(0, {"message_type" : "event", "info" : "Conversation might contains prohibited content"})
                                         del chat_history[:-left_lines]
                                         chat_history.insert(0, {"message_type" : "summary_old_chat", "info" : summary})
+                                        _file_unloaded_names = []
+                                        for f in old_files:
+                                            _file_unloaded_names.append(f['info'].get('file_name', None))
+                                        chat_history_new.append({"message_type" : "event", "info" : f"Files that have been unloaded and summarized: {_file_unloaded_names}. Call [load] to reload if necessary."})
+                                        del _file_unloaded_names
                                     except Exception as e:
                                         print_with_time(f"Error summary: {e}")
 
