@@ -58,7 +58,7 @@ def bridge_workflows(token, bridge_inputs = True):
     }
 
     dispatch_response = requests.post(dispatch_url, headers=headers, json=payload)
-    if dispatch_response.status_code == 204:
+    if dispatch_response.status_code == 204 or dispatch_response.status_code == 200: # could be 204 No Content or 200 OK
         print(f"Triggered workflow {workflow_id} on branch {payload['ref']}")
     else:
         raise Exception(f"Failed to trigger workflow: {dispatch_response.status_code}")
