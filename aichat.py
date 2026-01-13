@@ -499,6 +499,7 @@ try:
         "aichat_cooldown" : 10, # seconds
         "aichat_current_key" : get_current_key(client),
         "genimg_current_key" : get_current_key(genimg_client),
+        "aichat_traceto": admin_fbid,
     }
     for key, val in default_values.items():
         set_admin_settings_default(key, val)
