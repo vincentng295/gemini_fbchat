@@ -485,7 +485,7 @@ try:
     del __old_status
     set_structure(chat_infos, [admin_fbid, "admin_settings"])
     admin_settings = chat_infos[admin_fbid]["admin_settings"]
-    def set_admin_settings_default(name, default): admin_settings.setdefault(name, default)
+    def set_admin_settings_default(name, default): return admin_settings.setdefault(name, default)
     default_values = {
         "aichat" : True,
         "aichat_lite" : False,
@@ -499,14 +499,17 @@ try:
         "aichat_cooldown" : 10, # seconds
         "aichat_current_key" : get_current_key(client),
         "genimg_current_key" : get_current_key(genimg_client),
-        "aichat_traceto": admin_fbid,
+        "aichat_traceto" : admin_fbid,
+        "system_prompt" : None,
+        "opts" : "none",
+        
     }
     for key, val in default_values.items():
         set_admin_settings_default(key, val)
     # Removed all settings that are not in default_values
     for key in list(admin_settings.keys()):
         if key not in default_values:
-            del admin_settings[key]
+             del admin_settings[key]
     def get_admin_info(name, default=None): return admin_settings.get(name, default)
     def get_admin(): return get_admin_info("admin_chatid", admin_fbid)
 
