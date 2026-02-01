@@ -1140,7 +1140,7 @@ try:
                                             except Exception:
                                                 pass
                                         
-                                        image_elements = msg_element.find_elements(By.CSS_SELECTOR, 'img[src^="data:image/jpeg;base64,"]')
+                                        image_elements = msg_element.find_elements(By.CSS_SELECTOR, 'img[src^="data:"]')
                                         image_elements.extend(msg_element.find_elements(By.CSS_SELECTOR, 'a[href^="/messenger_media/"] img'))
                                         image_elements.extend(msg_element.find_elements(By.CSS_SELECTOR, 'img.xz74otr.xmz0i5r.x193iq5w'))
                                         for image_element in image_elements:
@@ -1151,7 +1151,7 @@ try:
                                                 driver.execute_script("arguments[0].setAttribute('skip_check', '1')", image_element)
                                                 data_uri = image_element.get_attribute("src")
                                                 image_name = f"files/{generate_random_string(40)}"
-                                                if data_uri.startswith("data:image/jpeg;base64,"):
+                                                if data_uri.startswith("data:"):
                                                     # Extract the base64 string (remove the prefix)
                                                     base64_str = data_uri.split(",")[1]
                                                     # Decode the base64 string into binary data
