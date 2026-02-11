@@ -1122,7 +1122,7 @@ try:
 
                                         try:
                                             msg_frame = msg_element.find_element(By.CSS_SELECTOR, 'div.html-div[dir="auto"]')
-                                            msg = msg_frame.text
+                                            msg = driver.execute_script("return window.getText(arguments[0]);", msg_frame)
                                             mentioned_to_me = msg_frame.find_elements(By.CSS_SELECTOR, f'a[href="https://www.facebook.com/{self_fbid}/"]')
                                             if len(mentioned_to_me) > 0:
                                                 chat_infos.setdefault(message_id, {})["chatable"] = True
@@ -1134,9 +1134,9 @@ try:
                                         if msg is None:
                                             try:
                                                 msg_title = msg_element.find_element(By.CSS_SELECTOR, 'span.x1lliihq.x6ikm8r.x10wlt62.x1n2onr6')
-                                                msg = msg_title.text
+                                                msg = driver.execute_script("return window.getText(arguments[0]);", msg_title)
                                                 msg_small = msg_element.find_element(By.CSS_SELECTOR, 'span.x1lliihq.x6ikm8r.x10wlt62.x1n2onr6.x1j85h84')
-                                                msg += "\n" + msg_small.text
+                                                msg += "\n" + driver.execute_script("return window.getText(arguments[0]);", msg_small)
                                             except Exception:
                                                 pass
                                         

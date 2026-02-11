@@ -64,4 +64,25 @@ if (window.__MESSAGE_WATCHER_LOADED__) {
     observer.observe(document.body, { childList: true, subtree: true });
 
     console.log("✅ Message watcher activated.");
+
+    // Hàm hỗ trợ lấy text từ một node (bao gồm alt text của ảnh)
+    window.getText = function(node) {
+        let result = "";
+
+        node.childNodes.forEach(child => {
+            if (child.nodeType === Node.TEXT_NODE) {
+                result += child.textContent;
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                if (child.tagName === "IMG" && child.alt) {
+                    result += child.alt;
+                } else if (child.tagName === "BR") {
+                    result += "\n";
+                } else {
+                    result += getText(child);
+                }
+            }
+        });
+
+        return result;
+    }
 }
