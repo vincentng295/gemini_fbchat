@@ -1228,7 +1228,17 @@ try:
                                         if name == None:
                                             name = "None"
                                         
-                                        chat_history_new.insert(0, {"message_type" : mark, "info" : {"name" : name, "msg" : msg}, "reading_time" : reading_time})
+                                        __json = {"message_type" : mark, "info" : {"name" : name, "msg" : msg}, "reading_time" : reading_time}
+                                        try: # Add Facebook name into message
+                                            round_image = driver.execute_script("""
+                                                return [...arguments[0].querySelectorAll('img')].find(i => /border-radius:\\s*50%/i.test(i.getAttribute('style') || ''));
+                                            """, msg_element)
+                                            if round_image is not None:
+                                                __json["info"]["Facebook_name"] = round_image.get_attribute("alt")
+                                        except Exception:
+                                            pass
+                                        chat_history_new.insert(0, __json)
+                                        del __json
                                     for msg_element in read_elements:
                                         driver.execute_script("arguments[0].setAttribute('checkpoint', 'checkpointed')", msg_element)
                                     return chat_history_new, files_mapping
