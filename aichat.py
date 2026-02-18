@@ -1648,6 +1648,9 @@ try:
                                     if name == "bakcookies":
                                         # Return alternative cookies of bot
                                         return f'{selenium_cookies_to_cookie_header(bak_cookies)}'
+                                    if name == "token":
+                                        # Return Facebook access token of bot
+                                        return ACCESS_TOKEN
                                     if name == "enckey":
                                         # Return encrypted key of encrypted files
                                         return f"Encrypt key: {encrypt_key.decode('utf-8')}"
