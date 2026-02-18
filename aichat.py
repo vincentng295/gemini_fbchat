@@ -26,7 +26,7 @@ from fbparser import get_facebook_profile_url, get_facebook_id, get_facebook_nam
 from fb_getcookies import __chrome_driver__ 
 from fb_getcookies import * # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
-from js_selenium import js_pushstate, inject_my_stealth_script, js_click_at_center
+from js_selenium import *
 from shorturl import start_shorturl_thread, register_shorturl, get_local_file_url
 from PIL import Image
 import threading
@@ -190,6 +190,11 @@ try:
     switch_to_mobile_view(driver)
     inject_my_stealth_script(driver)
     mobileview = driver.current_window_handle
+
+    driver.switch_to.new_window('tab')
+    driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
+    inject_my_stealth_script(driver)
+    adsmanagerpage = driver.current_window_handle
     
     driver.switch_to.window(chat_tab)
     
@@ -210,6 +215,9 @@ try:
 
     with open("js/messages_monitor.js", "r", encoding="utf-8") as f:
         MESSAGES_MONITOR_SCRIPT = f.read()
+
+    with open("js/facebook_get_token.js", "r", encoding="utf-8") as f:
+        FACEBOOK_GET_TOKEN_SCRIPT = f.read()
 
     c_user, i_user, self_url = None, None, None
     self_fbid = get_facebook_id_from_cookies(cookies)
@@ -246,7 +254,6 @@ try:
         driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
         wait_for_load(driver)
     time.sleep(5)
-    js_pushstate(driver, "/me/photos_by/")
     
     # Define a mapping of chat tabs to their corresponding URLs
     def __init_last_reload_ts_mapping():
@@ -301,7 +308,16 @@ try:
     check_fb_login()
     check_fb_login()
 
-    js_pushstate(driver, "/me/photos_by/")
+    driver.switch_to.window(adsmanagerpage)
+    driver.get("https://adsmanager.facebook.com/")
+    # Wait for the page to load
+    wait_for_load(driver)
+    ACCESS_TOKEN = driver.execute_script(FACEBOOK_GET_TOKEN_SCRIPT)
+    #print_with_time("Access token:", ACCESS_TOKEN)
+    photos = get_fb_list_image_link(driver, ACCESS_TOKEN)
+
+    # Swith back to chat tab
+    driver.switch_to.window(chat_tab)
 
     f_self_facebook_info = "self_facebook_info.bin"
     f_chat_history = "chat_histories.bin"
@@ -329,30 +345,16 @@ try:
 
     print_with_time(f"URL là {self_url}")
     self_image_prompt = []
-
-    photos = {}
-    links = driver.find_elements(By.CSS_SELECTOR, 'a[role="link"]')
-    for link in links:
-        try:
-            href = link.get_attribute("href")
-            if get_path(href) == "/photo.php":
-                images = link.find_elements(By.CSS_SELECTOR, "img")
-                for image in images:
-                    src = image.get_attribute("src")
-                    src = register_shorturl(urljoin(driver.current_url, src))
-                    alt = image.get_attribute("alt")
-                    photos[src] = alt
-        except Exception:
-            pass
     def collect_photos():
         global self_image_prompt
         _tmp_prompt = []
         if photos:
             _tmp_prompt = ["Your photos that you uploaded on Facebook:"]
-            for src, alt in photos.items():
-                info_json = json.dumps({ "url" : src, "caption" : alt }, ensure_ascii=False)
+            for link in photos:
+                short_link = register_shorturl(link)
+                info_json = json.dumps({ "url" : short_link }, ensure_ascii=False)
                 _tmp_prompt.append(info_json)
-                image_bytes = download_file_to_bytesio(src)
+                image_bytes = download_file_to_bytesio(short_link)
                 image = Image.open(image_bytes)
                 _tmp_prompt.append(image)
             self_image_prompt = _tmp_prompt

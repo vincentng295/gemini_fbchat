@@ -139,3 +139,46 @@ def js_click_at_center(driver, element):
 
         clickAtElementCenter(arguments[0]);
     """, element)
+
+  
+def get_fb_list_image_link(driver, token):
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+
+    async function getAllPhotos() {
+        let url = `https://graph.facebook.com/v18.0/me/photos?type=uploaded&fields=images,link,source&access_token=${token}`;
+        let links = [];
+
+        while (url) {
+            const res = await fetch(url, {
+                method: "GET",
+                mode: "cors",
+                credentials: "include",
+                referrer: "https://facebook.com"
+            });
+
+            const json = await res.json();
+
+            if (!json.data) break;
+
+            const pageLinks = json.data
+                .map(p => p.images && p.images[0] && p.images[0].source)
+                .filter(Boolean);
+
+            links.push(...pageLinks);
+
+            url = json.paging && json.paging.next
+                ? json.paging.next
+                : null;
+        }
+
+        return links;
+    }
+
+    getAllPhotos().then(callback).catch(e => callback([]));
+    """
+
+    return driver.execute_async_script(script, token)
+
+  
