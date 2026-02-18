@@ -181,4 +181,26 @@ def get_fb_list_image_link(driver, token):
 
     return driver.execute_async_script(script, token)
 
-  
+def get_fb_avater_link(driver, token):
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+
+    fetch(`https://graph.facebook.com/v18.0/me/picture?redirect=false&width=1024&height=1024&access_token=${token}`, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d && d.data && d.data.url)
+            callback(d.data.url);
+        else
+            callback(null);
+    })
+    .catch(() => callback(null));
+    """
+
+    return driver.execute_async_script(script, token)
+

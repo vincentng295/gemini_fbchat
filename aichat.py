@@ -314,7 +314,10 @@ try:
     wait_for_load(driver)
     ACCESS_TOKEN = driver.execute_script(FACEBOOK_GET_TOKEN_SCRIPT)
     #print_with_time("Access token:", ACCESS_TOKEN)
+    avatar_url = get_fb_avater_link(driver, ACCESS_TOKEN)
+    print_with_time("Avatar URL:", avatar_url)
     photos = get_fb_list_image_link(driver, ACCESS_TOKEN)
+    photos.insert(0, avatar_url) # Put avatar at first element
 
     # Swith back to chat tab
     driver.switch_to.window(chat_tab)
@@ -350,14 +353,14 @@ try:
         _tmp_prompt = []
         if photos:
             _tmp_prompt = ["Your photos that you uploaded on Facebook:"]
-            for link in photos:
+            for link in photos[:10]: # Limit to 10 photos
                 short_link = register_shorturl(link)
                 info_json = json.dumps({ "url" : short_link }, ensure_ascii=False)
                 _tmp_prompt.append(info_json)
                 image_bytes = download_file_to_bytesio(short_link)
                 image = Image.open(image_bytes)
                 _tmp_prompt.append(image)
-            self_image_prompt = _tmp_prompt
+                self_image_prompt = copy.deepcopy(_tmp_prompt)
     # Create and configure the thread as a daemon
     thread = threading.Thread(target=collect_photos)
     thread.daemon = True  # Set as daemon
