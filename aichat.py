@@ -725,6 +725,8 @@ try:
                     if "registered_fanpage" in info:
                         for fanpage_id in info.get("registered_fanpage", {}):
                             new_posts = fanpages.get(fanpage_id, None)
+                            current_timestamp = info["registered_fanpage"][fanpage_id]
+                            max_timestamp = current_timestamp
                             if new_posts is not None and len(new_posts) > 0:
                                 for post in new_posts:
                                     """
@@ -746,14 +748,15 @@ try:
                                     created_time = post.get("created_time", "")
                                     try:
                                         created_timestamp = int(datetime.strptime(created_time, "%Y-%m-%dT%H:%M:%S%z").timestamp())
-                                        if created_timestamp > info["registered_fanpage"][fanpage_id]: # Only send if the post is new
+                                        if created_timestamp > current_timestamp: # Only send if the post is new
                                             info.setdefault("result_cmd", []).append(message)
                                             if "full_picture" in post:
                                                 picture_file = download_file_to_bytesio(post["full_picture"])
                                                 info.setdefault("result_cmd", []).append(picture_file)
+                                            max_timestamp = max(max_timestamp, created_timestamp)
                                     except Exception as e:
                                         print_with_time("Error parsing post created_time:", e)
-                            info["registered_fanpage"][fanpage_id] = int(time.time()) # Update last checked time to now                            
+                            info["registered_fanpage"][fanpage_id] = max_timestamp # Update last checked time to now                            
             except Exception as e:
                 print_with_time("Error checking fanpage posts:", e)
             time.sleep(10*60) # Check every 10 minutes
