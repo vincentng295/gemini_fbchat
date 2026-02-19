@@ -703,6 +703,60 @@ try:
     last_reload_ts_mapping[mobileview] = 1
 
     next_wait_time_check_friends = 60*random.randint(40, 60)  # 40 to 60 minutes
+                
+    
+    # Run a daemon thread to check for new Facebook fanpage posts every 15 minutes
+    def check_fanpage_posts():
+        while True:
+            try:
+                # get list of registered fanpages from chat_infos
+                fanpages = {} # Contains fanpage id and fetched json
+                for _, info in chat_infos.items():
+                    if "registered_fanpage" in info:
+                        for fanpage_id in info.get("registered_fanpage", {}):
+                            fanpages[fanpage_id] = None
+                # Fetch new posts for each fanpage
+                for fanpage_id in fanpages.keys():
+                    new_posts = get_facebook_posts(driver, fanpage_id, ACCESS_TOKEN)
+                    if new_posts is not None:
+                        fanpages[fanpage_id] = new_posts
+                # For each chat that registered the fanpage, send new posts
+                for key, info in chat_infos.items():
+                    if "registered_fanpage" in info:
+                        for fanpage_id in info.get("registered_fanpage", {}):
+                            new_posts = fanpages.get(fanpage_id, None)
+                            if new_posts is not None and len(new_posts) > 0:
+                                for post in new_posts:
+                                    """
+                                    Example of post:
+                                    {
+                                        "message": "[Genshin Impact] ...\n\n#GenshinImpact #HoYoverse #GenshinImpactVN",
+                                        "created_time": "2026-02-19T04:01:00+0000",
+                                        "full_picture": "https://scontent.fsgn2-5.fna.fbcdn.net/v/t39.30808-6/635578818_1221081596845789_7487359087330321883_n.jpg?_nc_cat=1&ccb=1-7&_nc_sid=13d280&_nc_eui2=AeEeRwj4voguQFxaMlj7X3Z7qfNPi1qdT-Kp80-LWp1P4vQE_dtp-aV1HdstcrmJqXQLVEe6tT0wghqOIjvNJg7L&_nc_ohc=PyBP03ZP2lAQ7kNvwEqGw8P&_nc_oc=AdmrURY5wF3bG9eigVG91ws0NsmdXan6JHE25QLJNx5eeTBtVvE2S3c1g1ZEQBDmk_Co1OdnAgu2mYZQ5eLb9Avj&_nc_zt=23&_nc_ht=scontent.fsgn2-5.fna&_nc_gid=e0O6HL3sNRvGw9xZny56lA&oh=00_AfvLXDCgeQPpWlSLvjfrk92BGnirprSNdEnAgoJMDH5Gxg&oe=699C8A2E",
+                                        "id": "436784750467206_1221081640179118"
+                                    }
+                                    """
+                                    if not post.get("message", None):
+                                        continue
+                                    message = f"New post from fanpage {fanpage_id}"
+                                    if "id" in post:
+                                        message += f"\nLink: https://www.facebook.com/{fanpage_id}/posts/{post['id']}"
+                                    message += f"\n\n{post['message']}"
+                                    # Parse created_time to timestamp
+                                    created_time = post.get("created_time", "")
+                                    try:
+                                        created_timestamp = int(datetime.strptime(created_time, "%Y-%m-%dT%H:%M:%S%z").timestamp())
+                                        if created_timestamp > info["registered_fanpage"][fanpage_id]: # Only send if the post is new
+                                            info.setdefault("result_cmd", []).append(message)
+                                    except Exception as e:
+                                        print_with_time("Error parsing post created_time:", e)
+                            info["registered_fanpage"][fanpage_id] = int(time.time()) # Update last checked time to now                            
+            except Exception as e:
+                print_with_time("Error checking fanpage posts:", e)
+            time.sleep(10*60) # Check every 10 minutes
+    thread = threading.Thread(target=check_fanpage_posts)
+    thread.daemon = True
+    thread.start()
 
     while True:
         try:
@@ -944,6 +998,9 @@ try:
                         # Default permission for command for this chat
                         chat_infos.get(message_id, {}).setdefault("cmd_permission", {})
                         cmd_can_be_used = []
+                        __cmd_can_be_used = cmd_can_be_used.append
+                        # Default facebook fanpage registered for this chat
+                        chat_infos.get(message_id, {}).setdefault("registered_fanpage", {})
 
                         while True:
                             try:
@@ -1877,6 +1934,64 @@ try:
                                     if code != encrypt_key.decode('utf-8'):
                                         return TL(["Invalid code", "Mã không hợp lệ"])
                                     return parse_and_execute(command, True)
+
+                                __cmd_can_be_used("followfb")
+                                def register_fanpage_posts_fetching(facebook_url, _1=None):
+                                    """
+                                    Register a fanpage to fetch posts from.
+                                    /cmd followfb <facebook_url>
+                                    """
+                                    # If facebook_url is start with https:// then try to parse username from url, otherwise treat facebook_url as username directly
+                                    if facebook_url.startswith("https://") or facebook_url.startswith("http://"):
+                                        username = get_facebook_username(facebook_url)
+                                    else:
+                                        username = facebook_url
+                                    if not username:
+                                        return TL(["Invalid Facebook URL", "URL Facebook không hợp lệ"])
+                                    if not check_fb_username(driver, username, ACCESS_TOKEN):
+                                        return TL(["Facebook username does not exist", 
+                                                   "Tên người dùng Facebook không tồn tại"])
+                                    chat_infos.setdefault(message_id, {})["registered_fanpage"][username] = int(time.time())
+                                    return TL([
+                                        'Registered to fetch posts from fanpage: {USERNAME}',
+                                        'Đã đăng ký để lấy bài viết từ fanpage: {USERNAME}'
+                                    ]).format(USERNAME = username)
+
+                                __cmd_can_be_used("unfollowfb") 
+                                def unregister_fanpage_posts_fetching(facebook_url, _1=None):
+                                    """
+                                    Unregister a fanpage to stop fetching posts from it.
+                                    /cmd unfollowfb <facebook_url>
+                                    """
+                                    if facebook_url.startswith("https://") or facebook_url.startswith("http://"):
+                                        username = get_facebook_username(facebook_url)
+                                    else:
+                                        username = facebook_url
+                                    if not username:
+                                        return TL(["Invalid Facebook URL", "URL Facebook không hợp lệ"])
+                                    if not check_fb_username(driver, username, ACCESS_TOKEN):
+                                        return TL(["Facebook username does not exist", 
+                                                   "Tên người dùng Facebook không tồn tại"])
+                                    if username in chat_infos.get(message_id, {}).get("registered_fanpage", {}):
+                                        del chat_infos[message_id]["registered_fanpage"][username]
+                                    return TL([
+                                        'Unregistered to fetch posts from fanpage: {USERNAME}',
+                                        'Đã hủy đăng ký để lấy bài viết từ fanpage: {USERNAME}'
+                                    ]).format(USERNAME = username)
+
+                                __cmd_can_be_used("listfollowfb")
+                                def list_registered_facebook_fanpage(_0=None, _1=None):
+                                    """
+                                    List registered Facebook fanpages that bot is fetching posts from.
+                                    /cmd listfb
+                                    """
+                                    fanpages = chat_infos.get(message_id, {}).get("registered_fanpage", {})
+                                    if not fanpages:
+                                        return TL(["No registered fanpage", "Chưa có fanpage nào được đăng ký"])
+                                    text = TL(["Registered Facebook Fanpages:\n", "Các fanpage đã đăng ký:\n"])
+                                    for fanpage_id in fanpages:
+                                        text += f"- {fanpage_id}\n"
+                                    return text
                                 
                                 def access_denied(_0=None, _1=None):
                                     return TL(["You don't have permission to use this command", "Bạn không có quyền sử dụng lệnh này"])
@@ -1887,7 +2002,7 @@ try:
                                         return func # Return function to execute
                                     return access_denied # Return access denied message if no permission
                                 
-                                cmd_can_be_used.append("__any_test")
+                                __cmd_can_be_used("__any_test")
                                 def any_test(arg1=None, arg2=None):
                                     result = None
                                     if arg1 == "get_facebook_username":
@@ -1966,6 +2081,9 @@ try:
                                     "__any_test" : check_premission_and_execute(any_test, "__any_test"),
                                     "getid" : getid,
                                     "exec_secret" : exec_secret,
+                                    "followfb" : check_premission_and_execute(register_fanpage_posts_fetching, "followfb"),
+                                    "unfollowfb" : check_premission_and_execute(unregister_fanpage_posts_fetching, "unfollowfb"),
+                                    "listfollowfb" : check_premission_and_execute(list_registered_facebook_fanpage, "listfollowfb"),
                                 }
 
                                 def parse_and_execute(command, no_admin_check=False):
@@ -2024,12 +2142,12 @@ try:
                                             if isinstance(result, str):
                                                 send_keys_long_text(driver, get_message_input(), result)
                                                 get_message_input().send_keys("\n") # Press Enter to send
-                                                time.sleep(0.1)
+                                                time.sleep(1)
                                             elif isinstance(result, BytesIO):
                                                 ext, mime_type = get_mine_type(result.name)
                                                 drop_file(driver, get_message_input(), result, mime_type, result.name)
                                                 get_message_input().send_keys("\n") # Press Enter to send
-                                                time.sleep(0.1)
+                                                time.sleep(1)
                                         if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
                                     del command_result
                                 except Exception:

@@ -244,7 +244,7 @@ def get_facebook_posts(driver, username, token):
     const token = arguments[0];
     const username = arguments[1];
 
-    fetch(`https://graph.facebook.com/v18.0/${username}/posts?access_token=${token}`, {
+    fetch(`https://graph.facebook.com/v18.0/${username}/posts?fields=message,created_time,full_picture&access_token=${token}`, {
         method: "GET",
         mode: "cors",
         credentials: "include",
