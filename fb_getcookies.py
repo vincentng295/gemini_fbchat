@@ -408,7 +408,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         print(_url)
         if _url.startswith("www.facebook.com/checkpoint/"):
             print(f"Tài khoản dính checkpoint [{_url}]")
-            return -1, None
+            return -1, None, None
 
         driver.get("https://www.facebook.com/profile.php")
 
@@ -453,7 +453,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')
     # Use disabled Facebook account for testing :>
-    result, _ = get_fb_cookies(
+    result, _, _ = get_fb_cookies(
         "cthigiang952@mailpro.live", 
         "CaoGiang$0900", 
         "2526 VJOL P2TH UXNZ RAXD G3V5 I4DX AIFF"
