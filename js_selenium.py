@@ -149,28 +149,35 @@ def get_fb_list_image_link(driver, token):
     async function getAllPhotos() {
         let url = `https://graph.facebook.com/v18.0/me/photos?type=uploaded&fields=images,link,source&access_token=${token}`;
         let links = [];
+        let pageCount = 0;
+        const MAX_PAGES = 5;
 
-        while (url) {
-            const res = await fetch(url, {
-                method: "GET",
-                mode: "cors",
-                credentials: "include",
-                referrer: "https://facebook.com"
-            });
+        while (url && pageCount < MAX_PAGES) {
+            try {
+                const res = await fetch(url, {
+                    method: "GET",
+                    mode: "cors",
+                    credentials: "include",
+                    referrer: "https://facebook.com"
+                });
 
-            const json = await res.json();
+                const json = await res.json();
 
-            if (!json.data) break;
+                if (!json.data) break;
 
-            const pageLinks = json.data
-                .map(p => p.images && p.images[0] && p.images[0].source)
-                .filter(Boolean);
+                const pageLinks = json.data
+                    .map(p => p.images && p.images[0] && p.images[0].source)
+                    .filter(Boolean);
 
-            links.push(...pageLinks);
+                links.push(...pageLinks);
 
-            url = json.paging && json.paging.next
-                ? json.paging.next
-                : null;
+                url = json.paging && json.paging.next
+                    ? json.paging.next
+                    : null;
+                pageCount++;
+            } catch (e) {
+                break;
+            }
         }
 
         return links;
