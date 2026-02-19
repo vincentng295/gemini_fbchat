@@ -1996,6 +1996,35 @@ try:
                                         text += f"- {fanpage_id}\n"
                                     return text
                                 
+                                __cmd_can_be_used("fetchfb")
+                                def fetch_facebook_posts(facebook_url, amount_of_posts=None):
+                                    """
+                                    Fetch recent posts from a Facebook fanpage.
+                                    /cmd fetchfb <facebook_url> [posts_number]
+                                    """
+                                    if amount_of_posts is None:
+                                        amount_of_posts = "1"
+                                    if facebook_url.startswith("https://") or facebook_url.startswith("http://"):
+                                        username = get_facebook_username(facebook_url)
+                                    else:
+                                        username = facebook_url
+                                    if not username:
+                                        return TL(["Invalid Facebook URL", "URL Facebook không hợp lệ"])
+                                    if not check_fb_username(driver, username, ACCESS_TOKEN):
+                                        return TL(["Facebook username does not exist", 
+                                                   "Tên người dùng Facebook không tồn tại"])
+                                    posts = get_facebook_posts(driver, username, ACCESS_TOKEN)
+                                    if not posts:
+                                        return TL(["No posts found for this fanpage", "Không tìm thấy bài viết nào cho fanpage này"])
+                                    text = TL(["Recent posts from fanpage {USERNAME}:\n", "Các bài viết gần đây từ fanpage {USERNAME}:\n"]).format(USERNAME=username)
+                                    for post in posts[:int(amount_of_posts)]:
+                                        text += "=========================\n"
+                                        if "id" in post:
+                                            text += f"Link: https://www.facebook.com/{username}/posts/{post['id']}\n"
+                                        text += f"- {post.get('message', '')}\n"
+                                        text += "=========================\n"
+                                    return text
+
                                 def access_denied(_0=None, _1=None):
                                     return TL(["You don't have permission to use this command", "Bạn không có quyền sử dụng lệnh này"])
                                 
@@ -2087,6 +2116,7 @@ try:
                                     "followfb" : check_premission_and_execute(register_fanpage_posts_fetching, "followfb"),
                                     "unfollowfb" : check_premission_and_execute(unregister_fanpage_posts_fetching, "unfollowfb"),
                                     "listfollowfb" : check_premission_and_execute(list_registered_facebook_fanpage, "listfollowfb"),
+                                    "fetchfb" : check_premission_and_execute(fetch_facebook_posts, "fetchfb"),
                                 }
 
                                 def parse_and_execute(command, no_admin_check=False):
