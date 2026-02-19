@@ -428,6 +428,12 @@ def open_file_in_bytesio(path):
         byte_obj.seek(0)
         return byte_obj
 
+def open_text_in_bytesio(text : str, filename="text.txt"):
+    byte_obj = io.BytesIO(text.encode())
+    byte_obj.name = filename
+    byte_obj.seek(0)
+    return byte_obj
+
 import re
 
 def parse_opts_string(input_str):

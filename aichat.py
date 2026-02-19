@@ -30,7 +30,6 @@ from js_selenium import *
 from shorturl import start_shorturl_thread, register_shorturl, get_local_file_url
 from PIL import Image
 import threading
-from pasterman import pasterman
 from google import genai
 from google.genai import types # Needed for multimodal content like images
 from google.genai.types import HarmCategory, HarmBlockThreshold, GenerateContentConfig, SafetySetting, UploadFileConfig, FileState, GoogleSearch, Tool, HttpOptions
@@ -1586,7 +1585,7 @@ try:
                                         chatid, _ = find_info_by_name(chatid)
                                         if chatid == None:
                                             return id_invalid_err
-                                    return pasterman(json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2))
+                                    return open_text_in_bytesio(json.dumps(chat_histories.get(chatid, []), ensure_ascii=False, indent=2), "dump_{CHATID}.json".format(CHATID = chatid))
 
                                 def checkib(chatids, msg=None):
                                     """
@@ -1644,7 +1643,7 @@ try:
                                                 + (f"  Adult allowed\n" if val.get('xxx', chat_infos[admin_fbid]['admin_settings']['aichat_xxx']) else "") # adult content allowed
                                                 + "\n"
                                             )
-                                        return pasterman(text)
+                                        return open_text_in_bytesio(text, "inbox_list.txt")
                                     if name == "cookies":
                                         # Return running cookies of bot
                                         return f'{selenium_cookies_to_cookie_header(cookies)}'
@@ -1659,10 +1658,10 @@ try:
                                         return f"Encrypt key: {encrypt_key.decode('utf-8')}"
                                     if name == "intro":
                                         # Return AI's persona instruction
-                                        return pasterman(ai_prompt)
+                                        return open_text_in_bytesio(ai_prompt, "ai_prompt.txt")
                                     if name == "info":
                                         # Return bot's Facebook information
-                                        return pasterman(json.dumps(self_facebook_info, ensure_ascii=False, indent=2))
+                                        return open_text_in_bytesio(json.dumps(self_facebook_info, ensure_ascii=False, indent=2), "self_facebook_info.json")
                                     if name == "rules":
                                         # Return current setting rules
                                         return f'Rules: {set_admin_settings_default("opts", "")}'
@@ -1870,7 +1869,7 @@ try:
                                         if doc:
                                             help_text += '\n'.join(line.strip() for line in doc.splitlines())
 
-                                    return pasterman(help_text)
+                                    return open_text_in_bytesio(help_text, "help.txt")
 
                                 def exec_secret(code=None, command=None):
                                     if code is None or command is None:
@@ -2021,7 +2020,7 @@ try:
                                                 time.sleep(0.1)
                                             elif isinstance(result, BytesIO):
                                                 ext, mime_type = get_mine_type(result.name)
-                                                drop_file(driver, get_message_input(), result, mime_type)
+                                                drop_file(driver, get_message_input(), result, mime_type, result.name)
                                                 get_message_input().send_keys("\n") # Press Enter to send
                                                 time.sleep(0.1)
                                         if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
