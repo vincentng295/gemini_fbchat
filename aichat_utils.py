@@ -361,7 +361,7 @@ def image_to_png(image_bytesio):
     image.save(buffered, format="PNG")  # Convert to PNG format
     return buffered
 
-def download_file_to_bytesio(file_link):
+def download_file_to_bytesio(file_link, filename=None):
     """Tải file từ URL về BytesIO, kiểm tra MIME type"""
     response = requests.get(file_link, stream=True)
     if response.status_code != 200:
@@ -369,7 +369,12 @@ def download_file_to_bytesio(file_link):
     content_type = response.headers.get("Content-Type", "application/octet-stream")
     if "text/html" in content_type:
         raise Exception("File tải về không hợp lệ (có thể là trang lỗi HTML).")
-    return io.BytesIO(response.content)
+    result = io.BytesIO(response.content)
+    if filename:
+        result.name = filename
+    else:
+        result.name = link_to_filename(file_link) + get_extension(content_type)
+    return result
 
 def download_file_to_path(file_link, path):
     """Tải file từ URL và lưu vào path, kiểm tra MIME type"""

@@ -705,7 +705,7 @@ try:
     next_wait_time_check_friends = 60*random.randint(40, 60)  # 40 to 60 minutes
                 
     
-    # Run a daemon thread to check for new Facebook fanpage posts every 15 minutes
+    # Run a daemon thread to check for new Facebook fanpage posts every 10 minutes
     def check_fanpage_posts():
         while True:
             try:
@@ -748,6 +748,9 @@ try:
                                         created_timestamp = int(datetime.strptime(created_time, "%Y-%m-%dT%H:%M:%S%z").timestamp())
                                         if created_timestamp > info["registered_fanpage"][fanpage_id]: # Only send if the post is new
                                             info.setdefault("result_cmd", []).append(message)
+                                            if "full_picture" in post:
+                                                picture_file = download_file_to_bytesio(post["full_picture"])
+                                                info.setdefault("result_cmd", []).append(picture_file)
                                     except Exception as e:
                                         print_with_time("Error parsing post created_time:", e)
                             info["registered_fanpage"][fanpage_id] = int(time.time()) # Update last checked time to now                            
