@@ -942,6 +942,9 @@ try:
                         commands = chat_infos[message_id].pop("execute_cmd", [])
                         results = chat_infos[message_id].pop("result_cmd", [])
                         unhandled_msgs = chat_infos[message_id].pop("unhandled_msgs", [])
+                        # Default permission for command for this chat
+                        chat_infos.get(message_id, {}).setdefault("cmd_permission", {})
+                        cmd_can_be_used = []
 
                         while True:
                             try:
@@ -1875,7 +1878,47 @@ try:
                                     if code != encrypt_key.decode('utf-8'):
                                         return TL(["Invalid code", "Mã không hợp lệ"])
                                     return parse_and_execute(command, True)
-
+                                
+                                def access_denied(_0=None, _1=None):
+                                    return TL(["You don't have permission to use this command", "Bạn không có quyền sử dụng lệnh này"])
+                                
+                                def check_premission_and_execute(func, cmd_name):
+                                    if chat_infos.get(message_id, {}).get("cmd_permission", {}).get(cmd_name, False) == True \
+                                        or message_id == get_admin(): # ADMIN can execute any command without setting permission
+                                        return func # Return function to execute
+                                    return access_denied # Return access denied message if no permission
+                                
+                                cmd_can_be_used.append("__any_test")
+                                def any_test(arg1=None, arg2=None):
+                                    return TL(["Received any_test command with args: {}, {}".format(arg1, arg2), 
+                                               "Đã nhận lệnh any_test với các đối số: {}, {}".format(arg1, arg2)])
+                                
+                                def set_cmd_permission(chatid, permission_str):
+                                    """
+                                    Set command permissions for a chat. Only commands with permission set to true can be executed by that chat.
+                                    /cmd setcmdperm <id/idname> cmd1:true,cmd2:false,...
+                                    """
+                                    if chatid == None:
+                                        return TL(["Please provide a chat id!", "Hãy cung cấp một chat id"])
+                                    if chatid == "self":
+                                        return TL(["Cannot set permission for self", "Không thể đặt quyền cho chính mình"])
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    # Parse permission string in format: cmd1:true,cmd2:false,...
+                                    permissions = {}
+                                    for perm in permission_str.split(","):
+                                        if ":" in perm:
+                                            cmd, value = perm.split(":", 1)
+                                            if cmd.strip() in cmd_can_be_used:
+                                                permissions[cmd.strip()] = value.strip().lower() == "true"
+                                    chat_infos.setdefault(chatid, {}).setdefault("cmd_permission", {}).update(permissions)
+                                    return TL([
+                                        "Set command permissions for {CHATID}: {PERMISSIONS}",
+                                        "Đã đặt quyền lệnh cho {CHATID}: {PERMISSIONS}"
+                                    ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid), PERMISSIONS = permissions)
+                                    
                                 # Dictionary mapping arg1 to functions
                                 func = {
                                     "reset": reset_chat,
@@ -1909,9 +1952,12 @@ try:
                                     "traceto": traceto,
                                     "sync": force_sync,
                                     "setcd": setcd_by_id,
+                                    "setcmdperm": set_cmd_permission,
                                 }
                                 
                                 func_noadmin = {
+                                    # This is a special command for testing permission check, it won't be listed in help command
+                                    "__any_test" : check_premission_and_execute(any_test, "__any_test"),
                                     "getid" : getid,
                                     "exec_secret" : exec_secret,
                                 }
@@ -1932,7 +1978,7 @@ try:
                                     # Check if arg1 is in func and execute
                                     if arg1 in func:
                                         if message_id != get_admin() and not no_admin_check:
-                                            return "?"
+                                            return access_denied()
                                         try:
                                             return func[arg1](arg2, arg3)
                                         except Exception as e:
