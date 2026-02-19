@@ -50,4 +50,17 @@ def get_facebook_name(fbid, selenium_cookies=None):
     title_tag = soup.find('title')
     return title_tag.text
 
+def parse_facebook_username(url: str) -> str:
+    parsed = urlparse(url)
+    path = parsed.path.strip("/")   # bỏ dấu /
+    return path.split("/")[0] if path else ""
+
+def get_facebook_username(fblink, selenium_cookies=None):
+    import requests
+    cookies = {cookie["name"]: cookie["value"] for cookie in selenium_cookies} if selenium_cookies else None
+    # check if it is Facebook link
+    if not re.match(r'^https?://(www\.)?facebook\.com/.*', fblink):
+            return None
+    response = requests.head(fblink, cookies=cookies, allow_redirects=True)
+    return parse_facebook_username(response.url)
     

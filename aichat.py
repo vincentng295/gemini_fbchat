@@ -22,7 +22,7 @@ from selenium.webdriver.common.keys import Keys  # For keyboard actions
 from selenium.common.exceptions import *
 from pickle_utils import *  # For pickling data
 from github_utils import *  # For GitHub file operations
-from fbparser import get_facebook_profile_url, get_facebook_id, get_facebook_name
+from fbparser import *  # For Facebook parsing and cookie handling
 from fb_getcookies import __chrome_driver__ 
 from fb_getcookies import * # For Facebook cookie handling
 from aichat_utils import *  # For custom utility functions
@@ -1889,8 +1889,15 @@ try:
                                 
                                 cmd_can_be_used.append("__any_test")
                                 def any_test(arg1=None, arg2=None):
-                                    return TL(["Received any_test command with args: {}, {}".format(arg1, arg2), 
-                                               "Đã nhận lệnh any_test với các đối số: {}, {}".format(arg1, arg2)])
+                                    result = None
+                                    if arg1 == "get_facebook_username":
+                                        result = get_facebook_username(arg2, cookies)
+                                    if arg1 == "get_facebook_posts":
+                                        username = get_facebook_username(arg2, cookies)
+                                        if username:
+                                            result = get_facebook_posts(driver, username, ACCESS_TOKEN)
+                                    return TL(["Received any_test command with args: {}, {}\nResult: {}", 
+                                               "Đã nhận lệnh any_test với các đối số: {}, {}\nKết quả: {}"]).format(arg1, arg2, result)
                                 
                                 def set_cmd_permission(chatid, permission_str):
                                     """

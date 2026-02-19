@@ -211,3 +211,53 @@ def get_fb_avater_link(driver, token):
 
     return driver.execute_async_script(script, token)
 
+def check_fb_username(driver, username, token):
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+    const username = arguments[1];
+
+    fetch(`https://graph.facebook.com/v18.0/${username}?access_token=${token}`, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d && d.id && d.name)
+            callback(d);
+        else
+            callback(null);
+    })
+    .catch(() => callback(null));
+    """
+
+    return driver.execute_async_script(script, token, username)
+
+def get_facebook_posts(driver, username, token):
+    # First check if username is valid
+    if not check_fb_username(driver, username, token):
+        return None
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+    const username = arguments[1];
+
+    fetch(`https://graph.facebook.com/v18.0/${username}/posts?access_token=${token}`, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d && d.data)
+            callback(d.data);
+        else
+            callback(null);
+    })
+    .catch(() => callback(null));
+    """
+    return driver.execute_async_script(script, token, username)
+
