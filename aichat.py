@@ -740,7 +740,7 @@ try:
                                         continue
                                     message = f"New post from fanpage {fanpage_id}"
                                     if "id" in post:
-                                        message += f"\nLink: https://www.facebook.com/{fanpage_id}/posts/{post['id']}"
+                                        message += f"\nLink: https://www.facebook.com/{fanpage_id}/posts/{post['id'].rsplit('_', 1)[-1]}"
                                     message += f"\n\n{post['message']}"
                                     # Parse created_time to timestamp
                                     created_time = post.get("created_time", "")
@@ -2020,7 +2020,7 @@ try:
                                     for post in posts[:int(amount_of_posts)]:
                                         text += "=========================\n"
                                         if "id" in post:
-                                            text += f"Link: https://www.facebook.com/{username}/posts/{post['id']}\n"
+                                            text += f"Link: https://www.facebook.com/{username}/posts/{post['id'].rsplit('_', 1)[-1]}\n"
                                         text += f"- {post.get('message', '')}\n"
                                         text += "=========================\n"
                                     return text
