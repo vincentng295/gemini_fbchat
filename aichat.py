@@ -738,9 +738,9 @@ try:
                                     for post in new_posts:
                                         if not post.get("message", None):
                                             continue
-                                        message = f"New post from fanpage {page_name} (id: {fanpage_id}):"
-                                        if "id" in post:
-                                            message += f"\nLink: https://www.facebook.com/{fanpage_id}/posts/{post['id'].rsplit('_', 1)[-1]}"
+                                        # id post should not be null
+                                        message = f"https://www.facebook.com/{fanpage_id}/posts/{post.get('id','0').rsplit('_', 1)[-1]}"
+                                        message += f"\nNew post from fanpage {page_name} (id: {fanpage_id}):"
                                         message += f"\n\n{post['message']}"
                                         # Parse created_time to timestamp
                                         created_time = post.get("created_time", "")
