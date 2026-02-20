@@ -237,8 +237,9 @@ def check_fb_username(driver, username, token):
 
 def get_facebook_posts(driver, username, token):
     # First check if username is valid
-    if not check_fb_username(driver, username, token):
-        return None
+    info = check_fb_username(driver, username, token)
+    if not info:
+        return None, None
     script = """
     const callback = arguments[arguments.length - 1];
     const token = arguments[0];
@@ -259,5 +260,5 @@ def get_facebook_posts(driver, username, token):
     })
     .catch(() => callback(null));
     """
-    return driver.execute_async_script(script, token, username)
+    return info, driver.execute_async_script(script, token, username)
 

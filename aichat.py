@@ -467,6 +467,7 @@ try:
     except Exception as e:
         print_with_time(e)
     chat_infos = pickle_from_file(f_chat_infos, {})
+    chat_infos_lock = threading.Lock()
     def extract_names():
         result = {"self", "admin"} # Nicknames that cannot be used
         for value in chat_infos.values():
@@ -710,53 +711,50 @@ try:
         while True:
             try:
                 # get list of registered fanpages from chat_infos
+                fanpage_ids = set()
                 fanpages = {} # Contains fanpage id and fetched json
-                for _, info in chat_infos.items():
-                    if "registered_fanpage" in info:
-                        for fanpage_id in info.get("registered_fanpage", {}):
-                            fanpages[fanpage_id] = None
+                with chat_infos_lock:
+                    for _, info in chat_infos.items():
+                        if "registered_fanpage" in info:
+                            for fanpage_id in info.get("registered_fanpage", {}):
+                                fanpage_ids.add(fanpage_id)
                 # Fetch new posts for each fanpage
-                for fanpage_id in fanpages.keys():
-                    new_posts = get_facebook_posts(driver, fanpage_id, ACCESS_TOKEN)
+                for fanpage_id in fanpage_ids:
+                    page_info, new_posts = get_facebook_posts(driver, fanpage_id, ACCESS_TOKEN)
                     if new_posts is not None:
-                        fanpages[fanpage_id] = new_posts
+                        fanpages[fanpage_id] = { "info" : page_info, "posts" : new_posts }
                 # For each chat that registered the fanpage, send new posts
-                for key, info in chat_infos.items():
-                    if "registered_fanpage" in info:
-                        for fanpage_id in info.get("registered_fanpage", {}):
-                            new_posts = fanpages.get(fanpage_id, None)
-                            current_timestamp = info["registered_fanpage"][fanpage_id]
-                            max_timestamp = current_timestamp
-                            if new_posts is not None and len(new_posts) > 0:
-                                for post in new_posts:
-                                    """
-                                    Example of post:
-                                    {
-                                        "message": "[Genshin Impact] ...\n\n#GenshinImpact #HoYoverse #GenshinImpactVN",
-                                        "created_time": "2026-02-19T04:01:00+0000",
-                                        "full_picture": "https://scontent.fsgn2-5.fna.fbcdn.net/v/t39.30808-6/635578818_1221081596845789_7487359087330321883_n.jpg?_nc_cat=1&ccb=1-7&_nc_sid=13d280&_nc_eui2=AeEeRwj4voguQFxaMlj7X3Z7qfNPi1qdT-Kp80-LWp1P4vQE_dtp-aV1HdstcrmJqXQLVEe6tT0wghqOIjvNJg7L&_nc_ohc=PyBP03ZP2lAQ7kNvwEqGw8P&_nc_oc=AdmrURY5wF3bG9eigVG91ws0NsmdXan6JHE25QLJNx5eeTBtVvE2S3c1g1ZEQBDmk_Co1OdnAgu2mYZQ5eLb9Avj&_nc_zt=23&_nc_ht=scontent.fsgn2-5.fna&_nc_gid=e0O6HL3sNRvGw9xZny56lA&oh=00_AfvLXDCgeQPpWlSLvjfrk92BGnirprSNdEnAgoJMDH5Gxg&oe=699C8A2E",
-                                        "id": "436784750467206_1221081640179118"
-                                    }
-                                    """
-                                    if not post.get("message", None):
-                                        continue
-                                    message = f"New post from fanpage {fanpage_id}"
-                                    if "id" in post:
-                                        message += f"\nLink: https://www.facebook.com/{fanpage_id}/posts/{post['id'].rsplit('_', 1)[-1]}"
-                                    message += f"\n\n{post['message']}"
-                                    # Parse created_time to timestamp
-                                    created_time = post.get("created_time", "")
-                                    try:
-                                        created_timestamp = int(datetime.strptime(created_time, "%Y-%m-%dT%H:%M:%S%z").timestamp())
-                                        if created_timestamp > current_timestamp: # Only send if the post is new
-                                            info.setdefault("result_cmd", []).append(message)
-                                            if "full_picture" in post:
-                                                picture_file = download_file_to_bytesio(post["full_picture"])
-                                                info.setdefault("result_cmd", []).append(picture_file)
-                                            max_timestamp = max(max_timestamp, created_timestamp)
-                                    except Exception as e:
-                                        print_with_time("Error parsing post created_time:", e)
-                            info["registered_fanpage"][fanpage_id] = max_timestamp # Update last checked time to now                            
+                with chat_infos_lock:
+                    for key, info in chat_infos.items():
+                        if "registered_fanpage" in info:
+                            for fanpage_id in info.get("registered_fanpage", {}):
+                                fanpage = fanpages.get(fanpage_id, {})
+                                page_info = fanpage.get("info", {})
+                                page_name = page_info.get("name", fanpage_id)
+                                new_posts = fanpage.get("posts", [])
+                                current_timestamp = info["registered_fanpage"][fanpage_id]
+                                max_timestamp = current_timestamp
+                                if new_posts:
+                                    for post in new_posts:
+                                        if not post.get("message", None):
+                                            continue
+                                        message = f"New post from fanpage {page_name} (id: {fanpage_id}):"
+                                        if "id" in post:
+                                            message += f"\nLink: https://www.facebook.com/{fanpage_id}/posts/{post['id'].rsplit('_', 1)[-1]}"
+                                        message += f"\n\n{post['message']}"
+                                        # Parse created_time to timestamp
+                                        created_time = post.get("created_time", "")
+                                        try:
+                                            created_timestamp = int(datetime.strptime(created_time, "%Y-%m-%dT%H:%M:%S%z").timestamp())
+                                            if created_timestamp > current_timestamp: # Only send if the post is new
+                                                info.setdefault("result_cmd", []).append(message)
+                                                if "full_picture" in post:
+                                                    picture_file = download_file_to_bytesio(post["full_picture"])
+                                                    info.setdefault("result_cmd", []).append(picture_file)
+                                                max_timestamp = max(max_timestamp, created_timestamp)
+                                        except Exception as e:
+                                            print_with_time("Error parsing post created_time:", e)
+                                info["registered_fanpage"][fanpage_id] = max_timestamp # Update last checked time to now                            
             except Exception as e:
                 print_with_time("Error checking fanpage posts:", e)
             time.sleep(10*60) # Check every 10 minutes
@@ -2016,7 +2014,7 @@ try:
                                     if not check_fb_username(driver, username, ACCESS_TOKEN):
                                         return TL(["Facebook username does not exist", 
                                                    "Tên người dùng Facebook không tồn tại"])
-                                    posts = get_facebook_posts(driver, username, ACCESS_TOKEN)
+                                    _, posts = get_facebook_posts(driver, username, ACCESS_TOKEN)
                                     if not posts:
                                         return TL(["No posts found for this fanpage", "Không tìm thấy bài viết nào cho fanpage này"])
                                     text = TL(["Recent posts from fanpage {USERNAME}:\n", "Các bài viết gần đây từ fanpage {USERNAME}:\n"]).format(USERNAME=username)
@@ -2045,7 +2043,7 @@ try:
                                     if arg1 == "get_facebook_posts":
                                         username = get_facebook_username(arg2, cookies)
                                         if username:
-                                            result = get_facebook_posts(driver, username, ACCESS_TOKEN)
+                                            _, result = get_facebook_posts(driver, username, ACCESS_TOKEN)
                                     return TL(["Received any_test command with args: {}, {}\nResult: {}", 
                                                "Đã nhận lệnh any_test với các đối số: {}, {}\nKết quả: {}"]).format(arg1, arg2, result)
                                 
