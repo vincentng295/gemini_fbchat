@@ -747,10 +747,11 @@ try:
                                         try:
                                             created_timestamp = int(datetime.strptime(created_time, "%Y-%m-%dT%H:%M:%S%z").timestamp())
                                             if created_timestamp > current_timestamp: # Only send if the post is new
-                                                info.setdefault("result_cmd", []).append(message)
+                                                message_obj = { "text" : message }
+                                                info.setdefault("result_cmd", []).append(message_obj)
                                                 if "full_picture" in post:
                                                     picture_file = download_file_to_bytesio(post["full_picture"])
-                                                    info.setdefault("result_cmd", []).append(picture_file)
+                                                    message_obj["file"] = picture_file
                                                 max_timestamp = max(max_timestamp, created_timestamp)
                                         except Exception as e:
                                             print_with_time("Error parsing post created_time:", e)
@@ -2182,6 +2183,17 @@ try:
                                                 drop_file(driver, get_message_input(), result, mime_type, result.name)
                                                 get_message_input().send_keys("\n") # Press Enter to send
                                                 time.sleep(1)
+                                            elif isinstance(result, dict):
+                                                # This is a message object with text and optional file
+                                                text = result.get("text", "")
+                                                file = result.get("file", None)
+                                                if file:
+                                                    ext, mime_type = get_mine_type(file.name)
+                                                    drop_file(driver, get_message_input(), file, mime_type, file.name)
+                                                if text:
+                                                    send_keys_long_text(driver, get_message_input(), text)
+                                                get_message_input().send_keys("\n") # Press Enter to send
+
                                         if is_group_chat: chat_infos[message_id]["cooldown"] = int(time.time()) + 10
                                     del command_result
                                 except Exception:
