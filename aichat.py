@@ -740,7 +740,7 @@ try:
                                             continue
                                         # id post should not be null
                                         message = f"https://www.facebook.com/{fanpage_id}/posts/{post.get('id','0').rsplit('_', 1)[-1]}"
-                                        message += f"\nNew post from fanpage {page_name} (id: {fanpage_id}):"
+                                        message += f"\n{page_name} (id: {fanpage_id}):"
                                         message += f"\n\n{post['message']}"
                                         # Parse created_time to timestamp
                                         created_time = post.get("created_time", "")
@@ -749,9 +749,6 @@ try:
                                             if created_timestamp > current_timestamp: # Only send if the post is new
                                                 message_obj = { "text" : message }
                                                 info.setdefault("result_cmd", []).append(message_obj)
-                                                if "full_picture" in post:
-                                                    picture_file = download_file_to_bytesio(post["full_picture"])
-                                                    message_obj["file"] = picture_file
                                                 max_timestamp = max(max_timestamp, created_timestamp)
                                         except Exception as e:
                                             print_with_time("Error parsing post created_time:", e)
