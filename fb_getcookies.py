@@ -301,7 +301,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
         if len(prelogin) > 0:
             actions.move_to_element(prelogin[0]).click().perform()
         else:
-            form = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'form[action^="/login/"]')))
+            form = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'form#login_form')))
             email_input = find_element_when_clickable(By.NAME, "email")
             password_input = find_element_when_clickable(By.NAME, "pass")
             actions.move_to_element(email_input).click().perform()
@@ -310,23 +310,7 @@ def get_fb_cookies(username, password, otp_secret = None, alt_account = 0, cooki
             actions.move_to_element(password_input).click().perform()
             time.sleep(random.randint(5,10))
             human_typing(password_input, password)
-            
-            time.sleep(random.randint(5,10))
-            button = find_element_when_clickable_in_list([
-                (By.CSS_SELECTOR, 'button[type="submit"]'),
-                (By.CSS_SELECTOR, 'button[id="loginbutton"]'),
-            ])
-            form = button.find_element(By.XPATH, "./ancestor::form")
-            # inject to save login
-            driver.execute_script("""
-                var form = arguments[0];
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'savepass';
-                input.value = '';
-                form.appendChild(input);
-            """, form)
-            actions.move_to_element(button).click().perform()
+            password_input.send_keys("\n")
             print(f"{hide_email(username)}: Đang đăng nhập...")
         time.sleep(1)
         wait.until(
