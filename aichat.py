@@ -739,7 +739,8 @@ try:
                                         if not post.get("message", None):
                                             continue
                                         # id post should not be null
-                                        message = f"https://www.facebook.com/{fanpage_id}/posts/{post.get('id','0').rsplit('_', 1)[-1]}"
+                                        url = f"https://www.facebook.com/{fanpage_id}/posts/{post.get('id','0').rsplit('_', 1)[-1]}"
+                                        message = url
                                         message += f"\n{page_name} (id: {fanpage_id}):"
                                         message += f"\n\n{post['message']}"
                                         # Parse created_time to timestamp
@@ -749,6 +750,15 @@ try:
                                             if created_timestamp > current_timestamp: # Only send if the post is new
                                                 message_obj = { "text" : message }
                                                 info.setdefault("result_cmd", []).append(message_obj)
+                                                message_info = {
+                                                    "message_type" : "fanpage_post",
+                                                    "info" : { "fanpage_id" : fanpage_id, "page_name" : page_name, "post_id" : post.get("id", ""),
+                                                              "message" : post.get("message", ""), "created_time" : created_time, "url" : url },
+                                                }
+                                                info.setdefault("fanpage_posts", []).append(message_info)
+                                                # Keep only 20 latest posts for each fanpage in chat_infos to prevent memory overflow
+                                                if len(info["fanpage_posts"]) > 20:
+                                                    info["fanpage_posts"] = info["fanpage_posts"][-20:]
                                                 max_timestamp = max(max_timestamp, created_timestamp)
                                         except Exception as e:
                                             print_with_time("Error parsing post created_time:", e)
@@ -1345,6 +1355,7 @@ try:
                                         title = "New chat"
                                     chat_histories[chatid] = [{"message_type" : "new_chat", "info" : title}]
                                     chat_infos[chatid]["saved_msg"] = []
+                                    chat_infos[chatid]["fanpage_posts"] = []
                                     return TL([
                                         'I will forget everything in chat: {CHATID}',
                                         'Tôi sẽ quên mọi thứ trong chat: {CHATID}'
@@ -2300,6 +2311,10 @@ try:
                                     if chat_infos[message_id].setdefault("saved_msg", []):
                                         prompt_list.append(f"The 100 newest files in this conversation have been archived:")
                                         prompt_list.extend(process_chat_history(chat_infos[message_id].setdefault("saved_msg", [])))
+                                    # Facebook fanpage posts
+                                    if chat_infos[message_id].get("fanpage_posts", []):
+                                        prompt_list.append(f"The latest posts from Facebook fanpages that are registered to follow in this conversation are:")
+                                        prompt_list.extend(process_chat_history(chat_infos[message_id].get("fanpage_posts", [])))
                                     # current history
                                     prompt_list.append(f'The Messenger conversation with "{who_chatted}" is as json here:')
                                     prompt_list.extend(process_chat_history(chat_history))
