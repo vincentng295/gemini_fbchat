@@ -1323,7 +1323,13 @@ try:
                                     if not get_message_input():
                                         if get_alert():
                                             js_click_at_center(driver, get_alert())
+                                        # Get kicked or blocked
+                                        if message_id in chat_infos:
+                                            chat_infos[message_id].setdefault("redflags", 0)
+                                            chat_infos[message_id]["redflags"] += 1
                                         break
+                                    if message_id in chat_infos:
+                                        chat_infos[message_id].pop("redflags", None)
                                     js_click_at_center(driver, get_message_input())
                                 except Exception:
                                     pass
@@ -1360,7 +1366,24 @@ try:
                                         'I will forget everything in chat: {CHATID}',
                                         'Tôi sẽ quên mọi thứ trong chat: {CHATID}'
                                     ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
-                                        
+
+                                def wipe_chat_info(chatid = None, _0 = None):
+                                    """
+                                    Wipe it (incude chat history and chat infos)
+                                    /cmd wipe <id/idname>
+                                    """
+                                    if chatid == None or chatid == "self":
+                                        return id_invalid_err # Cannot delete self
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    chat_histories.pop(chatid, None)
+                                    chat_infos.pop(chatid, None)
+                                    return TL([
+                                        'Deleted: {CHATID}',
+                                        'Đã xóa: {CHATID}'
+                                    ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid))
 
                                 def resetall(title = None, _1 = None):
                                     """
@@ -1711,6 +1734,7 @@ try:
                                                 + (f"  Muted\n" if not val.get('chatable', True) else "") # muted
                                                 + (f"  Blocked\n" if val.get('block', False) else "") # blocked
                                                 + (f"  Adult allowed\n" if val.get('xxx', chat_infos[admin_fbid]['admin_settings']['aichat_xxx']) else "") # adult content allowed
+                                                + (f"  Redflagged: {val.get('redflags', 0)}\n" if val.get('redflags', 0) > 0 else "") # redflags counter
                                                 + "\n"
                                             )
                                         return open_text_in_bytesio(text, "inbox_list.txt")
@@ -2116,6 +2140,7 @@ try:
                                     "sync": force_sync,
                                     "setcd": setcd_by_id,
                                     "setcmdperm": set_cmd_permission,
+                                    "wipe": wipe_chat_info,
                                 }
                                 
                                 func_noadmin = {
