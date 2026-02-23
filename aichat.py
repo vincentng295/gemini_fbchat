@@ -2018,6 +2018,12 @@ try:
                                     Unregister a fanpage to stop fetching posts from it.
                                     /cmd unfollowfb <facebook_url>
                                     """
+                                    if facebook_url == "*": # Unregister all fanpages
+                                        chat_infos[message_id]["registered_fanpage"] = {}
+                                        return TL([
+                                            'Unregistered to fetch posts from all fanpages',
+                                            'Đã hủy đăng ký để lấy bài viết từ tất cả các fanpage'
+                                        ])
                                     if facebook_url.startswith("https://") or facebook_url.startswith("http://"):
                                         username = get_facebook_username(facebook_url)
                                     else:
