@@ -1989,6 +1989,17 @@ try:
                                     if code != encrypt_key.decode('utf-8'):
                                         return TL(["Invalid code", "Mã không hợp lệ"])
                                     return parse_and_execute(command, True)
+                                
+                                def call_getapi(endpoint, query = None):
+                                    """
+                                    Call Facebook Graph API with GET method.
+                                    /cmd getapi [endpoint] [query]
+                                    Default calling v18.0/me endpoint if not specified
+                                    """
+                                    if endpoint is None or endpoint == "":
+                                        endpoint = "v18.0/me"
+                                    result = call_facebook_get_api(driver, endpoint, query, ACCESS_TOKEN)
+                                    return open_text_in_bytesio(json.dumps(result), "getapi_result.json")
 
                                 __cmd_can_be_used("followfb")
                                 def register_fanpage_posts_fetching(facebook_url, _1=None):
@@ -2190,6 +2201,7 @@ try:
                                     "allowcmd": allow_cmd,
                                     "denycmd": deny_cmd,
                                     "wipe": wipe_chat_info,
+                                    "getapi": call_getapi,
                                 }
                                 
                                 func_noadmin = {

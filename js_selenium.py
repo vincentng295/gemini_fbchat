@@ -262,3 +262,33 @@ def get_facebook_posts(driver, username, token):
     """
     return info, driver.execute_async_script(script, token, username)
 
+def call_facebook_get_api(driver, endpoint, query, token):
+    # query like "fields=id,name&limit=10"
+    # append access_token to query depeneding on whether query is empty or not
+    if query:
+        query += "&access_token=" + token
+    else:
+        query = "access_token=" + token
+    query = query.replace("#", "%23")
+    query = query.replace("?", "%3F")
+    endpoint = endpoint.replace("#", "%23")
+    endpoint = endpoint.replace("?", "%3F")
+
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const endpoint = arguments[0];
+    const query = arguments[1];
+
+    const url = `https://graph.facebook.com/${endpoint}?${query}`;
+
+    fetch(url, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => callback(d))
+    .catch(() => callback(null));
+    """
+    return driver.execute_async_script(script, endpoint, query)
