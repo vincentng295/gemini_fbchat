@@ -1715,6 +1715,31 @@ try:
                                         ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid), MSG = msg)
                                     chat_list.append(chat_info)
                                     return ok
+                                
+                                def get_specific_chat_info(name):
+                                    if name == None or name == "self":
+                                        chatid = message_id
+                                    elif not name.isnumeric():
+                                        chatid, _ = find_info_by_name(name)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    else:
+                                        chatid = name
+                                    info = chat_infos.get(chatid, None)
+                                    if info is None:
+                                        return f"No information for chat: {chatid}"
+                                    return (
+                                                f"- ID:{chatid}\n"
+                                                + (f"  IDNAME:{info.get('idname')}\n" if info.get('idname') is not None else "")
+                                                + f"  FBID:{info.get('fbid', chatid)}\n"
+                                                + f"  NAME:{info.get('name', 'Unknown')}\n"
+                                                + (f"  Traced\n" if info.get('traced', False) else "") # traced
+                                                + (f"  Muted\n" if not info.get('chatable', True) else "") # muted
+                                                + (f"  Blocked\n" if info.get('block', False) else "") # blocked
+                                                + (f"  Adult allowed\n" if info.get('xxx', chat_infos[admin_fbid]['admin_settings']['aichat_xxx']) else "") # adult content allowed
+                                                + (f"  Redflagged: {info.get('redflags', 0)}\n" if info.get('redflags', 0) > 0 else "") # redflags counter
+                                                + (f"  Allowed commands: {', '.join([cmd for cmd, allowed in info.get('cmd_permission', {}).items() if allowed])}\n" if len(info.get('cmd_permission', {})) > 0 else "") # allowed commands
+                                            )
 
                                 def get_info(name, _1 = None):
                                     """
@@ -1724,20 +1749,13 @@ try:
                                     if name == "inbox":
                                         # Return list of bot's inboxes
                                         text = "LIST:  \n"
-                                        for key, val in chat_infos.items():
-                                            text += (
-                                                f"- ID:{key}\n"
-                                                + (f"  IDNAME:{val.get('idname')}\n" if val.get('idname') is not None else "")
-                                                + f"  FBID:{val.get('fbid', key)}\n"
-                                                + f"  NAME:{val.get('name', 'Unknown')}\n"
-                                                + (f"  Traced\n" if val.get('traced', False) else "") # traced
-                                                + (f"  Muted\n" if not val.get('chatable', True) else "") # muted
-                                                + (f"  Blocked\n" if val.get('block', False) else "") # blocked
-                                                + (f"  Adult allowed\n" if val.get('xxx', chat_infos[admin_fbid]['admin_settings']['aichat_xxx']) else "") # adult content allowed
-                                                + (f"  Redflagged: {val.get('redflags', 0)}\n" if val.get('redflags', 0) > 0 else "") # redflags counter
-                                                + "\n"
-                                            )
+                                        for key in chat_infos.keys():
+                                            text += get_specific_chat_info(key) + "\n"
                                         return open_text_in_bytesio(text, "inbox_list.txt")
+                                    if name.startswith("inbox="):
+                                        # Return information of a specific inbox given by id or idname
+                                        chatid = name[len("inbox="):].strip()
+                                        return get_specific_chat_info(chatid)
                                     if name == "cookies":
                                         # Return running cookies of bot
                                         return f'{selenium_cookies_to_cookie_header(cookies)}'
@@ -2079,11 +2097,11 @@ try:
                                             _, result = get_facebook_posts(driver, username, ACCESS_TOKEN)
                                     return TL(["Received any_test command with args: {}, {}\nResult: {}", 
                                                "Đã nhận lệnh any_test với các đối số: {}, {}\nKết quả: {}"]).format(arg1, arg2, result)
-                                
-                                def set_cmd_permission(chatid, permission_str):
+
+                                def allow_cmd(chatid, cmds):
                                     """
-                                    Set command permissions for a chat. Only commands with permission set to true can be executed by that chat.
-                                    /cmd setcmdperm <id/idname> cmd1:true,cmd2:false,...
+                                    Allow this command for a chat. You can set multiple commands at once by separating them with comma.
+                                    /cmd setcmdperm allow <id/idname> cmd1,cmd2,cmd3
                                     """
                                     if chatid == None:
                                         return TL(["Please provide a chat id!", "Hãy cung cấp một chat id"])
@@ -2093,19 +2111,43 @@ try:
                                         chatid, _ = find_info_by_name(chatid)
                                         if chatid == None:
                                             return id_invalid_err
-                                    # Parse permission string in format: cmd1:true,cmd2:false,...
-                                    permissions = {}
-                                    for perm in permission_str.split(","):
-                                        if ":" in perm:
-                                            cmd, value = perm.split(":", 1)
-                                            if cmd.strip() in cmd_can_be_used:
-                                                permissions[cmd.strip()] = value.strip().lower() == "true"
-                                    chat_infos.setdefault(chatid, {}).setdefault("cmd_permission", {}).update(permissions)
+                                    # cmds = "cmd1,cmd2,cmd3"
+                                    cmd_list = [cmd.strip() for cmd in cmds.split(",")]
+                                    # Ensure cmd_permission exists for this chat
+                                    cmd_permissions = chat_infos.setdefault(chatid, {}).setdefault("cmd_permission", {})
+                                    for cmd in cmd_list:
+                                        if cmd.strip() in cmd_can_be_used:
+                                            cmd_permissions[cmd] = True
                                     return TL([
-                                        "Set command permissions for {CHATID}: {PERMISSIONS}",
-                                        "Đã đặt quyền lệnh cho {CHATID}: {PERMISSIONS}"
-                                    ]).format(CHATID = chat_infos.get(chatid, {}).get('idname', chatid), PERMISSIONS = permissions)
-                                    
+                                        "Allowed commands {CMDS} for chat {CHATID}",
+                                        "Đã cho phép lệnh {CMDS} cho nhóm {CHATID}"
+                                    ]).format(CMDS=cmds, CHATID=chat_infos.get(chatid, {}).get('idname', chatid))
+
+                                def deny_cmd(chatid, cmds):
+                                    """
+                                    Deny this command for a chat. You can set multiple commands at once by separating them with comma.
+                                    /cmd setcmdperm deny <id/idname> cmd1,cmd2,cmd3
+                                    """
+                                    if chatid == None:
+                                        return TL(["Please provide a chat id!", "Hãy cung cấp một chat id"])
+                                    if chatid == "self":
+                                        return TL(["Cannot set permission for self", "Không thể đặt quyền cho chính mình"])
+                                    if not chatid.isnumeric():
+                                        chatid, _ = find_info_by_name(chatid)
+                                        if chatid == None:
+                                            return id_invalid_err
+                                    # cmds = "cmd1,cmd2,cmd3"
+                                    cmd_list = [cmd.strip() for cmd in cmds.split(",")]
+                                    # Ensure cmd_permission exists for this chat
+                                    cmd_permissions = chat_infos.setdefault(chatid, {}).setdefault("cmd_permission", {})
+                                    for cmd in cmd_list:
+                                        if cmd.strip() in cmd_can_be_used:
+                                            cmd_permissions[cmd] = False
+                                    return TL([
+                                        "Denied commands {CMDS} for chat {CHATID}",
+                                        "Đã từ chối lệnh {CMDS} cho nhóm {CHATID}"
+                                    ]).format(CMDS=cmds, CHATID=chat_infos.get(chatid, {}).get('idname', chatid))
+
                                 # Dictionary mapping arg1 to functions
                                 func = {
                                     "reset": reset_chat,
@@ -2139,7 +2181,8 @@ try:
                                     "traceto": traceto,
                                     "sync": force_sync,
                                     "setcd": setcd_by_id,
-                                    "setcmdperm": set_cmd_permission,
+                                    "allowcmd": allow_cmd,
+                                    "denycmd": deny_cmd,
                                     "wipe": wipe_chat_info,
                                 }
                                 
