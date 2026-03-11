@@ -313,10 +313,17 @@ try:
     wait_for_load(driver)
     ACCESS_TOKEN = driver.execute_script(FACEBOOK_GET_TOKEN_SCRIPT)
     #print_with_time("Access token:", ACCESS_TOKEN)
-    avatar_url = get_fb_avater_link(driver, ACCESS_TOKEN)
-    print_with_time("Avatar URL:", avatar_url)
-    photos = get_fb_list_image_link(driver, ACCESS_TOKEN)
-    photos.insert(0, avatar_url) # Put avatar at first element
+    for _ in range(5):
+        try:
+            avatar_url = get_fb_avater_link(driver, ACCESS_TOKEN)
+            print_with_time("Avatar URL:", avatar_url)
+            photos = get_fb_list_image_link(driver, ACCESS_TOKEN)
+            photos.insert(0, avatar_url) # Put avatar at first element
+            break
+        except Exception as e:
+            print_with_time("Lỗi khi lấy ảnh đại diện, thử lại...", e)
+            time.sleep(1)
+            continue
 
     # Swith back to chat tab
     driver.switch_to.window(chat_tab)
