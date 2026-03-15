@@ -190,6 +190,7 @@ with open(f_login_info, "w", encoding='utf-8') as f:
     login_info["i_user"] = i_user
     login_info["last_check"] = int(time.time())
     login_info["facebook_url"] = fb_url
+    login_info.pop("check_only", None)
     json.dump(login_info, f)
 
 if not use_backup and if_running_on_github_workflows:
