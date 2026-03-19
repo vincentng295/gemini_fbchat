@@ -741,6 +741,7 @@ try:
                                 new_posts = fanpage.get("posts", [])
                                 current_timestamp = info["registered_fanpage"][fanpage_id]
                                 max_timestamp = current_timestamp
+                                one_day_ago = int(time.time()) - 86400
                                 if new_posts:
                                     for post in new_posts:
                                         if not post.get("message", None):
@@ -754,7 +755,7 @@ try:
                                         created_time = post.get("created_time", "")
                                         try:
                                             created_timestamp = int(datetime.strptime(created_time, "%Y-%m-%dT%H:%M:%S%z").timestamp())
-                                            if created_timestamp > current_timestamp: # Only send if the post is new
+                                            if created_timestamp > current_timestamp and created_timestamp > one_day_ago: # Only send if the post is new
                                                 message_obj = { "text" : message }
                                                 info.setdefault("result_cmd", []).append(message_obj)
                                                 message_info = {
