@@ -182,6 +182,7 @@ try:
 
     tz_params = {'timezoneId': 'Asia/Ho_Chi_Minh'}
     driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
+    driver.get("https://www.facebook.com")
     chat_tab = driver.current_window_handle
 
     driver.switch_to.new_window('tab')
@@ -237,8 +238,6 @@ try:
     print_with_time("Danh sách jobs:", work_jobs)
 
     admin_fbid = work_jobs.get("aichat_adminfbid", "100013487195619")
-
-    driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
     wait_for_load(driver)
     if self_fbid == get_facebook_id_from_cookies(driver.get_cookies()):
         print_with_time("Cookies còn hiệu lực")
@@ -253,6 +252,7 @@ try:
         driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
         wait_for_load(driver)
     time.sleep(5)
+    js_pushstate(driver, MESSENGER_HOME_PAGE)
     
     # Define a mapping of chat tabs to their corresponding URLs
     def __init_last_reload_ts_mapping():
@@ -281,9 +281,10 @@ try:
                         driver.add_cookie(cookie)
                     set_facebook_id(driver, c_user, i_user)
                     last_reload_ts_mapping = __init_last_reload_ts_mapping()
-                    driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
+                    driver.get("https://www.facebook.com")
                     wait_for_load(driver)
                     time.sleep(1)
+                    js_pushstate(driver, MESSENGER_HOME_PAGE)
                 elif bak_cookies is not None:
                     print_with_time("Tài khoản bị đăng xuất, sử dụng cookies dự phòng")
                     # TODO: obtain new cookies
@@ -294,9 +295,10 @@ try:
                     set_facebook_id(driver, c_user, i_user)
                     bak_cookies = None
                     last_reload_ts_mapping = __init_last_reload_ts_mapping()
-                    driver.get(urljoin("https://www.facebook.com", MESSENGER_HOME_PAGE))
+                    driver.get("https://www.facebook.com")
                     wait_for_load(driver)
                     time.sleep(1)
+                    js_pushstate(driver, MESSENGER_HOME_PAGE)
                 else:
                     print_with_time("Tài khoản bị đăng xuất")
                     raise KeyboardInterrupt
@@ -318,7 +320,7 @@ try:
             avatar_url = get_fb_avater_link(driver, ACCESS_TOKEN)
             print_with_time("Avatar URL:", avatar_url)
             photos = [avatar_url] # Put avatar at first element
-            # photos.extend(get_fb_list_image_link(driver, ACCESS_TOKEN))
+            photos.extend(get_fb_list_image_link(driver, ACCESS_TOKEN))
             break
         except Exception as e:
             print_with_time("Lỗi khi lấy ảnh đại diện, thử lại...", e)
@@ -363,7 +365,7 @@ try:
                 short_link = register_shorturl(link)
                 info_json = json.dumps({ "url" : short_link }, ensure_ascii=False)
                 _tmp_prompt.append(info_json)
-                image_bytes = download_file_to_bytesio(short_link)
+                image_bytes = download_file_to_bytesio(link)
                 image = Image.open(image_bytes)
                 _tmp_prompt.append(image)
                 self_image_prompt = copy.deepcopy(_tmp_prompt)
