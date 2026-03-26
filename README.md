@@ -7,7 +7,7 @@
 ## Cách hoạt động
 
 - Tự động hóa bằng Selenium mà không có API.
-- Hỗ trợ giao diện Facebook vào ngày *05/06/2025*: [Xem giao diện Facebook được hỗ trợ](https://vincentng295.github.io/gemini_fbchat/static_page/static_page_www_facebook_com_messages_t_1944119966415669.html)
+- Hỗ trợ giao diện Facebook vào ngày *26/03/2026*: [Xem giao diện Facebook được hỗ trợ](https://vincentng295.github.io/gemini_fbchat/static_page/static_page_www_facebook_com_messages_t_9360340114029789.html)
 - Hỗ trợ cuộc trò chuyện được mã hóa đầu cuối (E2EE chat)
 
 ---
