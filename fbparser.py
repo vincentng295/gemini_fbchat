@@ -63,4 +63,97 @@ def get_facebook_username(fblink, selenium_cookies=None):
             return None
     response = requests.head(fblink, cookies=cookies, allow_redirects=True)
     return parse_facebook_username(response.url)
+
+def selenium_to_cookiejar(driver):
+    jar = requests.cookies.RequestsCookieJar()
+    for c in driver.get_cookies():
+        jar.set(
+            c['name'],
+            c['value'],
+            domain=c.get('domain'),
+            path=c.get('path')
+        )
+    return jar
+
+def build_headers(referer="https://facebook.com"):
+    return {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": referer,
+        "Origin": "https://facebook.com",
+        "Connection": "keep-alive"
+    }
+
+def fb_get(url, cookies, referer="https://facebook.com"):
+    try:
+        res = requests.get(
+            url,
+            headers=build_headers(referer),
+            cookies=cookies,
+            timeout=10
+        )
+        return res.json()
+    except:
+        return None
+
+def get_fb_list_image_link(driver, token):
+    cookies = selenium_to_cookiejar(driver)
+    url = f"https://graph.facebook.com/v18.0/me/photos?type=uploaded&fields=images,link,source&access_token={token}"
+    links = []
+    page_count = 0
+    MAX_PAGES = 5
+    while url and page_count < MAX_PAGES:
+        data = fb_get(url, cookies)
+        if not data or "data" not in data:
+            break
+        for p in data["data"]:
+            images = p.get("images")
+            if images and len(images) > 0:
+                src = images[0].get("source")
+                if src:
+                    links.append(src)
+        url = data.get("paging", {}).get("next")
+        page_count += 1
+    return links
+
+def get_fb_avater_link(driver, token):
+    cookies = selenium_to_cookiejar(driver)
+    url = f"https://graph.facebook.com/v18.0/me/picture?redirect=false&width=1024&height=1024&access_token={token}"
+    data = fb_get(url, cookies)
+    if data:
+        return data.get("data", {}).get("url")
+    return None
+
+
+def check_fb_username(driver, username, token):
+    cookies = selenium_to_cookiejar(driver)
+    url = f"https://graph.facebook.com/v18.0/{username}?access_token={token}"
+    data = fb_get(url, cookies)
+    if data and data.get("id") and data.get("name"):
+        return data
+    return None
+
+def get_facebook_posts(driver, username, token):
+    cookies = selenium_to_cookiejar(driver)
+    info = check_fb_username(driver, username, token)
+    if not info:
+        return None, None
+    url = f"https://graph.facebook.com/v18.0/{username}/posts?fields=message,created_time,full_picture&access_token={token}"
+    data = fb_get(url, cookies)
+    if data:
+        return info, data.get("data")
+    return info, None
+
+def call_facebook_get_api(driver, endpoint, query, token):
+    cookies = selenium_to_cookiejar(driver)
+    if query:
+        query += "&access_token=" + token
+    else:
+        query = "access_token=" + token
+    query = query.replace("#", "%23").replace("?", "%3F")
+    endpoint = endpoint.replace("#", "%23").replace("?", "%3F")
+    url = f"https://graph.facebook.com/{endpoint}?{query}"
+    return fb_get(url, cookies)
     
