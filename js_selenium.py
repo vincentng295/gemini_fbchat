@@ -139,3 +139,156 @@ def js_click_at_center(driver, element):
 
         clickAtElementCenter(arguments[0]);
     """, element)
+
+  
+def get_fb_list_image_link(driver, token):
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+
+    async function getAllPhotos() {
+        let url = `https://graph.facebook.com/v18.0/me/photos?type=uploaded&fields=images,link,source&access_token=${token}`;
+        let links = [];
+        let pageCount = 0;
+        const MAX_PAGES = 5;
+
+        while (url && pageCount < MAX_PAGES) {
+            try {
+                const res = await fetch(url, {
+                    method: "GET",
+                    mode: "cors",
+                    credentials: "include",
+                    referrer: "https://facebook.com"
+                });
+
+                const json = await res.json();
+
+                if (!json.data) break;
+
+                const pageLinks = json.data
+                    .map(p => p.images && p.images[0] && p.images[0].source)
+                    .filter(Boolean);
+
+                links.push(...pageLinks);
+
+                url = json.paging && json.paging.next
+                    ? json.paging.next
+                    : null;
+                pageCount++;
+            } catch (e) {
+                break;
+            }
+        }
+
+        return links;
+    }
+
+    getAllPhotos().then(callback).catch(e => callback([]));
+    """
+
+    return driver.execute_async_script(script, token)
+
+def get_fb_avater_link(driver, token):
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+
+    fetch(`https://graph.facebook.com/v18.0/me/picture?redirect=false&width=1024&height=1024&access_token=${token}`, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d && d.data && d.data.url)
+            callback(d.data.url);
+        else
+            callback(null);
+    })
+    .catch(() => callback(null));
+    """
+
+    return driver.execute_async_script(script, token)
+
+def check_fb_username(driver, username, token):
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+    const username = arguments[1];
+
+    fetch(`https://graph.facebook.com/v18.0/${username}?access_token=${token}`, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d && d.id && d.name)
+            callback(d);
+        else
+            callback(null);
+    })
+    .catch(() => callback(null));
+    """
+
+    return driver.execute_async_script(script, token, username)
+
+def get_facebook_posts(driver, username, token):
+    # First check if username is valid
+    info = check_fb_username(driver, username, token)
+    if not info:
+        return None, None
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const token = arguments[0];
+    const username = arguments[1];
+
+    fetch(`https://graph.facebook.com/v18.0/${username}/posts?fields=message,created_time,full_picture&access_token=${token}`, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d && d.data)
+            callback(d.data);
+        else
+            callback(null);
+    })
+    .catch(() => callback(null));
+    """
+    return info, driver.execute_async_script(script, token, username)
+
+def call_facebook_get_api(driver, endpoint, query, token):
+    # query like "fields=id,name&limit=10"
+    # append access_token to query depeneding on whether query is empty or not
+    if query:
+        query += "&access_token=" + token
+    else:
+        query = "access_token=" + token
+    query = query.replace("#", "%23")
+    query = query.replace("?", "%3F")
+    endpoint = endpoint.replace("#", "%23")
+    endpoint = endpoint.replace("?", "%3F")
+
+    script = """
+    const callback = arguments[arguments.length - 1];
+    const endpoint = arguments[0];
+    const query = arguments[1];
+
+    const url = `https://graph.facebook.com/${endpoint}?${query}`;
+
+    fetch(url, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        referrer: "https://facebook.com"
+    })
+    .then(r => r.json())
+    .then(d => callback(d))
+    .catch(() => callback(null));
+    """
+    return driver.execute_async_script(script, endpoint, query)
