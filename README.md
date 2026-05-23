@@ -1,5 +1,7 @@
 # Gemini Facebook Chatbot  
 
+> This project is dead
+
 - Tạo bot trả lời tin nhắn tự động với Gemini AI. Tự động phản hồi tin nhắn Messenger bằng Google Generative AI (Gemini).
 
 ---
